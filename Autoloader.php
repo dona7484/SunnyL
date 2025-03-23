@@ -5,15 +5,15 @@ class Autoloader {
     }
 
     private static function autoload($class) {
-        // Convertir les namespaces en chemins
+        // Remplacer les namespaces par des chemins
         $class = str_replace('\\', DIRECTORY_SEPARATOR, $class);
 
-        // Liste des dossiers à vérifier
+        // Dossiers à scanner (majuscule sur 'Controllers' et 'Models')
         $directories = [
-            __DIR__ . DIRECTORY_SEPARATOR . 'controllers',
-            __DIR__ . DIRECTORY_SEPARATOR . 'core',
-            __DIR__ . DIRECTORY_SEPARATOR . 'models',
-            __DIR__ . DIRECTORY_SEPARATOR . 'entities',
+            __DIR__ . '/Controllers',
+            __DIR__ . '/core',
+            __DIR__ . '/models',
+            __DIR__ . '/entities',
         ];
 
         foreach ($directories as $directory) {
@@ -21,13 +21,10 @@ class Autoloader {
             if (file_exists($file)) {
                 require_once $file;
                 return;
-            } else {
-                // Debugging: Afficher les chemins vérifiés
-                echo "Autoloader: Vérification du chemin : $file<br>";
             }
         }
 
-        echo "Autoloader: Impossible de charger la classe $class.";
-        die();
+        // En cas d'échec silencieux (désactive le die pour éviter de bloquer tout)
+        error_log("Autoloader : Classe non trouvée : $class");
     }
 }

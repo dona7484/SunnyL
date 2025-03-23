@@ -17,7 +17,6 @@ class EventController extends Controller {
         }
     }
     
-
     public function add() {
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Créez une nouvelle instance de l'événement
@@ -37,6 +36,13 @@ class EventController extends Controller {
 
         // Appelez la méthode create du modèle pour ajouter l'événement à la base de données
         $eventModel->create($event);
+        
+        // After creating the event, send a notification
+        $customMessage = $_POST['notificationMessage'] ?? '';
+if (!empty($customMessage)) {
+    $notifController = new NotificationController();
+    $notifController->sendNotification(1, 'event', $customMessage);
+}
 
         // Redirigez l'utilisateur vers la liste des événements après l'ajout
         header('Location: index.php?controller=event&action=index');
@@ -63,6 +69,8 @@ class EventController extends Controller {
                 ->addInput('checkbox', 'alertFloat')
                 ->addLabel('alertTime', 'Temps avant alerte')
                 ->addSelect('alertTime', ['1h' => '1 heure avant', '30m' => '30 minutes avant', '15m' => '15 minutes avant'])
+                ->addLabel('notificationMessage', 'Message de notification personnalisé')
+                ->addTextarea('notificationMessage')
                 ->addInput('submit', 'create', ['value' => 'Créer l\'événement'])
                 ->endForm();
 
@@ -85,7 +93,8 @@ public function update($id) {
         $event->setLieu($_POST['lieu']);
 
         // Enregistrez les modifications dans la base de données
-        $eventModel->update($event);
+        $eventModel->update($event->getId(), $event);
+
 
         // Redirigez l'utilisateur vers la liste des événements après la mise à jour
         header('Location: index.php?controller=event&action=index');
@@ -117,8 +126,9 @@ public function update($id) {
     public function delete($id) {
         $eventModel = new EventModel();
         $eventModel->delete($id);
-
-        header('Location: index.php?controller=event&action=index');
-        exit;
+// After creating the event, send a notification
+$notifController = new NotificationController();
+$notifController->sendNotification(1, 'event', 'Un nouvel événement a été ajouté !');
     }
+
 }
