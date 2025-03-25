@@ -4,7 +4,16 @@ class HomeController extends Controller {
         $this->render('home/index');
     }
 
-    public function dashboard() {
-        $this->render('home/dashboard');
+    public function dashboardNotifs() {
+        $this->render('home/notifications');
     }
+    public function alert() {
+        $this->render('home/alert');
+    }
+
+    public function eventAlert() {
+        $this->render('home/event_alert');
+    }
+    
+    
 }

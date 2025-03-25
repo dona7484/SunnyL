@@ -8,12 +8,13 @@ class Autoloader {
         // Remplacer les namespaces par des chemins
         $class = str_replace('\\', DIRECTORY_SEPARATOR, $class);
 
-        // Dossiers à scanner (majuscule sur 'Controllers' et 'Models')
+    
         $directories = [
             __DIR__ . '/Controllers',
             __DIR__ . '/core',
             __DIR__ . '/models',
             __DIR__ . '/entities',
+            __DIR__ . '/config',
         ];
 
         foreach ($directories as $directory) {

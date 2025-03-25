@@ -46,13 +46,16 @@ $title = "Liste des Événements";
                     <th scope="col">Description</th>
                     <th scope="col">Date</th>
                     <th scope="col">Actions</th>
+                    <th scope="col">Status</th>
                 </tr>
             </thead>
             <tbody>
                 <?php foreach ($list as $event): ?>
                     <tr>
                         <td><?= htmlspecialchars($event->getId(), ENT_QUOTES, 'UTF-8') ?></td>
-                        <td><?= htmlspecialchars($event->getTitle(), ENT_QUOTES, 'UTF-8') ?></td>
+                        <td>
+    <?= htmlspecialchars($event->getTitle(), ENT_QUOTES) ?>
+</td>
                         <td><?= htmlspecialchars($event->getDescription(), ENT_QUOTES, 'UTF-8') ?></td>
                         <td><?= htmlspecialchars($event->getDate(), ENT_QUOTES, 'UTF-8') ?></td>
                         <td>
@@ -60,6 +63,12 @@ $title = "Liste des Événements";
                             <a href="index.php?controller=event&action=update&id=<?= htmlspecialchars($event->getId(), ENT_QUOTES, 'UTF-8') ?>">Modifier</a>
                             <a href="index.php?controller=event&action=delete&id=<?= htmlspecialchars($event->getId(), ENT_QUOTES, 'UTF-8') ?>">Supprimer</a>
                         </td>
+                        <td>
+    <?= htmlspecialchars($event->getTitle(), ENT_QUOTES) ?>
+    <?= ($event->isTriggered() ? '<span class="badge bg-success">Alerté</span>' : '<span class="badge bg-warning">Non alerté</span>') ?>
+</td>
+
+
                     </tr>
                 <?php endforeach; ?>
             </tbody>
