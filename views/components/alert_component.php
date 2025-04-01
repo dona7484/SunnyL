@@ -1,19 +1,5 @@
-<?php
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-$_SESSION['user_id'] = 1;
-?>
-echo "<p style='color:red;'>🔍 SESSION user_id = " . ($_SESSION['user_id'] ?? 'non défini') . "</p>";
-?>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
-</head>
-<body>
+<!-- views/components/alert_component.php -->
+
 <audio id="notif-sound" src="audio/notif-sound.mp3" preload="auto"></audio>
 
 <div id="notif-bubble" class="notif-bubble" style="display:none;">
@@ -47,8 +33,6 @@ setInterval(() => {
     fetch("index.php?controller=alert&action=check")
     .then(res => res.json())
     .then(data => {
-        console.log("💬 Réponse du serveur :", data); 
-
         if (data.should_alert) {
             if (data.type === "event") {
                 window.location.href = `index.php?controller=home&action=eventAlert&id=${data.id}`;
@@ -59,7 +43,6 @@ setInterval(() => {
     })
     .catch(err => console.error("❌ Erreur dans fetch :", err));
 }, 5000);
-
 </script>
 
 <style>
@@ -97,6 +80,3 @@ setInterval(() => {
     to   { transform: translate(-50%, 0); opacity: 1; }
 }
 </style>
-
-</body>
-</html>

@@ -1,8 +1,4 @@
 <?php
-// namespace Core;
-
-use PDO;
-use Exception;
 
 class DbConnect
 {

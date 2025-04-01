@@ -38,6 +38,10 @@ if (session_status() == PHP_SESSION_NONE) {
                         <li class="nav-item">
     <a class="nav-link" href="index.php?controller=event&action=index">Événements</a>
 </li>
+<li class="nav-item">
+<a class="nav-link" href="index.php?controller=photo&action=form">Envoyer une photo</a>
+<a class="nav-link" href="index.php?controller=photo&action=gallery&id=<?= $_SESSION['user_id'] ?? 1 ?>">Galerie</a>
+            </li>
  <li class="nav-item">
                             <?php if (isset($_SESSION['name'])): ?>
                                 <a class="nav-link" href="index.php?controller=auth&action=logout">Se déconnecter</a>

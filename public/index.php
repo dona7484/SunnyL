@@ -1,9 +1,8 @@
 <?php
+ini_set('display_errors', 1);
+error_reporting(E_ALL);
 ob_start();
 session_start();
-
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
 
 // L'autoloader charge toutes les classes
 require_once __DIR__ . '/../Autoloader.php';

@@ -2,6 +2,9 @@
 // Inclure et enregistrer l'autoloader
 require_once '../Autoloader.php';
 Autoloader::register();
+ini_set('display_errors', 1);
+error_reporting(E_ALL);
+
 
 // Maintenant, vous pouvez utiliser vos classes sans require_once
 $eventModel = new EventModel();

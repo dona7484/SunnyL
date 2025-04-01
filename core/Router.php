@@ -1,4 +1,13 @@
 <?php
+$controller = isset($_GET['controller']) ? $_GET['controller'] : null;
+
+if (!isset($_GET['controller'])) {
+    require_once __DIR__ . '/../views/home/index.php';
+
+
+    exit;
+}
+
 class Router
 {
     public function routes()
@@ -72,5 +81,13 @@ class Router
             http_response_code(404);
             echo "Erreur 404 : Contrôleur '$controllerName' introuvable.";
         }
+
+        // Pour afficher la page d’envoi
+if ($_GET['controller'] === 'photo' && $_GET['action'] === 'form') {
+    require_once __DIR__ . '/../views/photo/upload.php';
+
+    exit;
+}
+
     }
 }

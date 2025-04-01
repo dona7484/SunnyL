@@ -1,12 +1,9 @@
 <?php
 if (session_status() === PHP_SESSION_NONE) session_start();
 $_SESSION['user_id'] = 1; // ⚠️ temporaire, remplace avec session réelle
-require_once __DIR__ . '/../../Controllers/NotificationController.php';;
-
-
-// Récupérer les notifications depuis le contrôleur
-$notifController = new NotificationController();
-$lastNotif = $notifController->getLastUnreadNotification($_SESSION['user_id']);
+require_once __DIR__ . '/../../Models/Notification.php';
+$notifId = $_GET['id'] ?? null;
+$notif = Notification::getById($notifId);
 
 ?>
 <!DOCTYPE html>
@@ -25,25 +22,26 @@ $lastNotif = $notifController->getLastUnreadNotification($_SESSION['user_id']);
     <span id="notif-count">0</span>
 </div>
 <div class="notif-screen">
-    <?php if ($lastNotif): ?>
-        <img src="images/IconeRappel.png" class="notif-icon" alt="Notification">
+<?php if ($notif): ?>
+    <img src="images/IconeRappel.png" class="notif-icon" alt="Notification">
 
-        <div class="notif-message">
-            <?= htmlspecialchars($lastNotif['content']) ?>
-        </div>
-        <form method="POST" action="index.php?controller=notification&action=markNotificationAsRead">
-    <input type="hidden" name="notif_id" value="<?= $lastNotif['id'] ?>">
-    <button type="submit" style="border:none;background:none;">
-        <img src="images/check-button.png" class="notif-validate" alt="Valider">
-    </button>
-</form>
+    <div class="notif-message">
+        <?= htmlspecialchars($notif['content']) ?>
+    </div>
 
-    <?php else: ?>
-        <div class="notif-message">
-            Aucune nouvelle notification.
-        </div>
-    <?php endif; ?>
+    <form method="POST" action="index.php?controller=notification&action=markNotificationAsRead">
+        <input type="hidden" name="notif_id" value="<?= $notif['id'] ?>">
+        <button type="submit" style="border:none;background:none;">
+            <img src="images/check-button.png" class="notif-validate" alt="Valider">
+        </button>
+    </form>
+<?php else: ?>
+    <div class="notif-message">
+        Aucune nouvelle notification.
+    </div>
+<?php endif; ?>
 </div>
+
 
 <script>
     document.addEventListener("DOMContentLoaded", function() {
