@@ -42,6 +42,9 @@ if (session_status() == PHP_SESSION_NONE) {
 <a class="nav-link" href="index.php?controller=photo&action=form">Envoyer une photo</a>
 <a class="nav-link" href="index.php?controller=photo&action=gallery&id=<?= $_SESSION['user_id'] ?? 1 ?>">Galerie</a>
             </li>
+            <a href="index.php?controller=message&action=send" class="btn btn-primary">Envoyer un message</a>
+<a href="index.php?controller=message&action=received" class="btn btn-info">Voir mes messages</a>
+
  <li class="nav-item">
                             <?php if (isset($_SESSION['name'])): ?>
                                 <a class="nav-link" href="index.php?controller=auth&action=logout">Se déconnecter</a>
