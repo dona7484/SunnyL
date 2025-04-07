@@ -1,71 +1,86 @@
 <?php
-require __DIR__ . '/vendor/autoload.php';
-
 use Ratchet\Server\IoServer;
 use Ratchet\Http\HttpServer;
 use Ratchet\WebSocket\WsServer;
+use Ratchet\ConnectionInterface;
 
-// Déclaration de la classe ChatServer uniquement si elle n'est pas déjà définie
-if (!class_exists('ChatServer')) {
-    class ChatServer implements \Ratchet\MessageComponentInterface {
-        protected $clients;
-        
-        public function __construct() {
-            $this->clients = new \SplObjectStorage;
-            echo "WebSocket Server démarré...\n";
+require __DIR__ . '/config/database.php'; 
+
+class Chat implements \Ratchet\MessageComponentInterface {
+    protected $clients;
+    private $db;
+
+    public function __construct() {
+        $this->clients = new \SplObjectStorage;
+        $this->initDatabase();
+    }
+
+    private function initDatabase() {
+        try {
+            $dbConnect = new DbConnect();
+            $this->db = $dbConnect->getConnection();
+        } catch (Exception $e) {
+            error_log("Erreur DB: " . $e->getMessage());
+            exit;
         }
-        
-        public function onOpen(\Ratchet\ConnectionInterface $conn) {
-            $this->clients->attach($conn);
-            echo "Nouvelle connexion: {$conn->resourceId}\n";
-        }
-        
-        public function onMessage(\Ratchet\ConnectionInterface $from, $msg) {
-            $data = json_decode($msg, true);
-            if (!$data) {
-                echo "Message invalide reçu.\n";
-                return;
-            }
+    }
+
+    public function onOpen(ConnectionInterface $conn) {
+        $this->clients->attach($conn);
+    }
+
+    public function onMessage(ConnectionInterface $from, $msg) {
+        try {
+            $data = json_decode($msg);
             
-            // Sauvegarder le message dans la base
-            // (Si vous utilisez déjà l'autoloader, vous pouvez retirer le require_once)
-            require_once __DIR__ . '/models/Message.php';
-            try {
-                Message::save($data['sender'], $data['receiver'], $data['message'], null);
-                echo "Message sauvegardé en base.\n";
-            } catch (Exception $e) {
-                echo "Erreur lors de la sauvegarde : " . $e->getMessage() . "\n";
+            // Vérifier le JSON
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                throw new Exception("JSON invalide: " . json_last_error_msg());
             }
-            
-            // Diffuser le message aux clients connectés
+
+            if ($data->type === 'message') {
+                $this->saveMessageToDB($data);
+            }
+
             foreach ($this->clients as $client) {
-                $client->send($msg);
+                if ($client !== $from) {
+                    $client->send(json_encode($data));
+                }
             }
-            echo "Message diffusé: " . $msg . "\n";
+        } catch (Exception $e) {
+            error_log("Erreur onMessage: " . $e->getMessage());
+            $from->close();
         }
-        
-        
-        
-        public function onClose(\Ratchet\ConnectionInterface $conn) {
-            $this->clients->detach($conn);
-            echo "Connexion fermée: {$conn->resourceId}\n";
+    }
+
+    private function saveMessageToDB($data) {
+        try {
+            // Utiliser la connexion existante
+            $stmt = $this->db->prepare("INSERT INTO messages (sender_id, receiver_id, content) VALUES (?, ?, ?)");
+            $stmt->execute([
+                $data->sender ?? 0,
+                $data->receiver ?? 0,
+                $data->content ?? ''
+            ]);
+        } catch (PDOException $e) {
+            error_log("Erreur DB: " . $e->getMessage());
         }
-        
-        public function onError(\Ratchet\ConnectionInterface $conn, \Exception $e) {
-            echo "Erreur: {$e->getMessage()}\n";
-            $conn->close();
-        }
+    }
+
+    public function onClose(ConnectionInterface $conn) {
+        $this->clients->detach($conn);
+    }
+
+    public function onError(ConnectionInterface $conn, \Exception $e) {
+        error_log("Erreur WebSocket: " . $e->getMessage());
+        $conn->close();
     }
 }
 
-// Démarrage du serveur sur le port 8080
 $server = IoServer::factory(
-    new HttpServer(
-        new WsServer(
-            new ChatServer()
-        )
-    ),
+    new HttpServer(new WsServer(new Chat())),
     8080
 );
 
+echo "Serveur WebSocket démarré sur ws://localhost:8080\n";
 $server->run();

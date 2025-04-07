@@ -1,11 +1,51 @@
 <?php
 class EventController extends Controller {
-    public function index() {
+   // Dans EventController.php
+public function index() {
+    error_reporting(E_ALL);
+    ini_set('display_errors', 1);
+    
+    try {
         $eventModel = new EventModel();
         $events = $eventModel->findAll();
         $this->render('events/index', ['list' => $events]);
+    } catch (Exception $e) {
+        die("Erreur dans EventController::index : " . $e->getMessage());
     }
+}
 
+    public function createEvent() {
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $title = $_POST['title'];
+            $date = $_POST['date']; // Assurez-vous de bien formater cette valeur en date
+            $description = $_POST['description'];
+            $location = $_POST['location'];
+            $notificationMessage = $_POST['notification_message'];
+    
+            // Sauvegarder l'événement dans la base de données
+            $eventModel = new EventModel();
+            $eventId = $eventModel->createEvent($title, $date, $description, $location);
+    
+            // Si l'événement est créé avec succès, envoyer une notification
+            if ($eventId) {
+                // Récupérer tous les seniors associés à ce familymember
+                $familyMemberId = $_SESSION['user_id'];
+                $seniorModel = new SeniorModel();
+                $seniors = $seniorModel->getSeniorsForFamilyMember($familyMemberId);
+    
+                // Envoyer une notification personnalisée à chaque senior
+                $notificationController = new NotificationController();
+                foreach ($seniors as $senior) {
+                    $notificationController->sendNotification($senior['user_id'], 'event', $notificationMessage, $eventId);
+                }
+    
+                echo json_encode(['success' => true, 'message' => 'Événement créé et notification envoyée!']);
+            } else {
+                echo json_encode(['error' => 'Erreur lors de la création de l\'événement']);
+            }
+        }
+    }
+    
     public function show($id) {
         $eventModel = new EventModel();
         $event = $eventModel->find($id);
@@ -110,6 +150,17 @@ $notifController->sendNotification($event->getUserId(), 'event', $event->getNoti
             ]);
         }
     }
+    public function markEventAsRead() {
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $eventId = $_POST['event_id'];
+    
+            // Mettre à jour l'état de l'événement dans la base de données
+            $eventModel = new EventModel();
+            $eventModel->markEventAsRead($eventId);
+    
+            echo json_encode(['success' => true, 'message' => 'Événement marqué comme lu']);
+        }
+    }
     
 public function update($id) {
     // Récupérez l'événement à mettre à jour
@@ -168,12 +219,32 @@ $event->setAlertTime($alertTime);
 }
 
 
-    public function delete($id) {
-        $eventModel = new EventModel();
-        $eventModel->delete($id);
-// After creating the event, send a notification
-$notifController = new NotificationController();
-$notifController->sendNotification(1, 'event', 'Un nouvel événement a été ajouté !');
+public function delete($id) {
+    $eventModel = new EventModel();
+    $eventModel->delete($id);
+
+    $notifController = new NotificationController();
+    $notifController->sendNotification(1, 'event', 'Un événement a été supprimé.');
+}
+// Nouvelle action pour récupérer les événements pour un senior
+public function receive() {
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
     }
 
+    // Vérifier que l'utilisateur est connecté et qu'il est un senior
+    if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'senior') {
+        echo json_encode(['error' => 'Accès interdit.']);
+        exit;
+    }
+
+    // Récupérer les événements associés à l'utilisateur senior
+    $eventModel = new EventModel();
+    $events = $eventModel->findEventsForUser($_SESSION['user_id']); // Méthode à définir dans ton modèle
+
+    // Passer les événements à la vue
+    $this->render('events/received', ['events' => $events]);
 }
+
+}
+

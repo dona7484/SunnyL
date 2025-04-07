@@ -1,11 +1,20 @@
 <?php
-if (session_status() === PHP_SESSION_NONE) session_start();
-$_SESSION['user_id'] = 1; // ⚠️ temporaire, remplace avec session réelle
-require_once __DIR__ . '/../../Models/Notification.php';
-$notifId = $_GET['id'] ?? null;
-$notif = Notification::getById($notifId);
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
+$notifId = $_GET['id'] ?? null;
+if (!$notifId) {
+    // Si l'ID n'est pas passé, afficher une erreur ou rediriger
+    echo "<p style='color:red;'>Erreur : ID de notification manquant.</p>";
+    exit;
+}
+
+// Récupérer la notification en fonction de l'ID
+require_once __DIR__ . '/../../Models/Notification.php';
+$notif = Notification::getById($notifId);
 ?>
+
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -28,13 +37,13 @@ $notif = Notification::getById($notifId);
     <div class="notif-message">
         <?= htmlspecialchars($notif['content']) ?>
     </div>
+    <form method="POST" action="/notifications/markAsRead">
+    <input type="hidden" name="notif_id" value="<?= $notif['id'] ?>">
+    <button type="submit" style="border:none;background:none;">
+        <img src="images/check-button.png" class="notif-validate" alt="Valider">
+    </button>
+</form>
 
-    <form method="POST" action="index.php?controller=notification&action=markNotificationAsRead">
-        <input type="hidden" name="notif_id" value="<?= $notif['id'] ?>">
-        <button type="submit" style="border:none;background:none;">
-            <img src="images/check-button.png" class="notif-validate" alt="Valider">
-        </button>
-    </form>
 <?php else: ?>
     <div class="notif-message">
         Aucune nouvelle notification.

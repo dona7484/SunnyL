@@ -2,6 +2,9 @@
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
+ini_set('display_errors', 1);
+error_reporting(E_ALL);
+
 
 // Utilisez le bon chemin vers le fichier User.php dans le dossier models
 require_once __DIR__ . '/../../models/User.php';
@@ -10,7 +13,10 @@ require_once __DIR__ . '/../../models/User.php';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email = trim($_POST['email'] ?? '');
     $password = $_POST['password'] ?? '';
-
+    $interface = $_POST['interface'] ?? 'default'; // Récupère l'interface choisie Cela vous aidera à savoir si les données du formulaire sont correctement envoyées
+    echo "Données reçues : ";
+    var_dump($_POST);
+    
     if (empty($email) || empty($password)) {
         $error = "Veuillez saisir votre email et votre mot de passe.";
     } else {
@@ -21,11 +27,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['user_id'] = $user['id'];
             $_SESSION['role']    = $user['role'];
             $_SESSION['name']    = $user['name'];
-            
-            // Redirection selon le rôle de l'utilisateur
-            if ($user['role'] === 'senior') {
+            $_SESSION['interface'] = $interface; // Ajout de l'interface dans la session
+            echo "Données reçues : ";
+var_dump($_POST);
+
+            // Redirection selon le rôle et l'interface choisie
+            if ($_SESSION['role'] === 'senior' && $_SESSION['interface'] === 'tablet') {
                 header("Location: index.php?controller=dashboard&action=senior");
+            } elseif ($_SESSION['role'] === 'famille' && $_SESSION['interface'] === 'default') {
+                header("Location: index.php?controller=dashboard&action=family");
             } else {
+                // Si l'interface tablette est choisie pour un membre de la famille
+                // ou si l'interface ne correspond pas, on redirige vers le tableau de bord par défaut
                 header("Location: index.php?controller=dashboard&action=family");
             }
             exit;
@@ -34,6 +47,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 }
+
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -53,26 +67,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>
             <?php endif; ?>
             <form method="POST" action="">
-    <div class="mb-3">
-        <label for="email" class="form-label">Adresse email</label>
-        <input type="email" class="form-control" id="email" name="email" required autofocus>
-    </div>
-    <div class="mb-3">
-        <label for="password" class="form-label">Mot de passe</label>
-        <input type="password" class="form-control" id="password" name="password" required>
-    </div>
-    <div class="mb-3">
-        <label for="interface" class="form-label">Choisissez votre interface</label>
-        <select name="interface" id="interface" class="form-control">
-            <!-- "default" correspond à l'interface classique pour les proches -->
-            <option value="default">Interface proche</option>
-            <!-- "tablet" correspond à l'interface tablette (dashboard senior) -->
-            <option value="tablet">Interface tablette (dashboard senior)</option>
-        </select>
-    </div>
-    <button type="submit" class="btn btn-primary w-100">Se connecter</button>
-</form>
-
+                <div class="mb-3">
+                    <label for="email" class="form-label">Adresse email</label>
+                    <input type="email" class="form-control" id="email" name="email" required autofocus>
+                </div>
+                <div class="mb-3">
+                    <label for="password" class="form-label">Mot de passe</label>
+                    <input type="password" class="form-control" id="password" name="password" required>
+                </div>
+                <div class="mb-3">
+                    <label for="interface" class="form-label">Choisissez votre interface</label>
+                    <select name="interface" id="interface" class="form-control">
+                        <!-- "default" correspond à l'interface classique pour les proches -->
+                        <option value="default">Interface proche</option>
+                        <!-- "tablet" correspond à l'interface tablette (dashboard senior) -->
+                        <option value="tablet">Interface tablette (dashboard senior)</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary w-100">Se connecter</button>
+            </form>
         </div>
     </div>
 </div>

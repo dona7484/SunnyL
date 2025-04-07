@@ -95,8 +95,7 @@ function loadGallery() {
 // Chargement initial de la galerie via AJAX
 loadGallery();
 
-// Vous pouvez également rafraîchir périodiquement la galerie si besoin
-// setInterval(loadGallery, 30000); // toutes les 30 secondes par exemple
+
 </script>
 </body>
 </html>

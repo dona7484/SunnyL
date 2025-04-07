@@ -1,4 +1,4 @@
-<?php
+<!-- <?php
 $title = "Messagerie Instantanée";
 ?>
 <!DOCTYPE html>
@@ -85,4 +85,4 @@ $title = "Messagerie Instantanée";
     });
   </script>
 </body>
-</html>
+</html> -->

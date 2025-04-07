@@ -53,6 +53,11 @@ $title = "Liste des Événements";
                 </tr>
             </thead>
             <tbody>
+            <?php if (empty($list)): ?>
+    <div class="alert alert-warning">Aucun événement trouvé. <a href="index.php?controller=event&action=add">Créer le premier événement</a></div>
+<?php else: ?>
+    <!-- Afficher le tableau existant -->
+<?php endif; ?>
                 <?php foreach ($list as $event): ?>
                     <tr>
                         <td><?= htmlspecialchars($event->getId(), ENT_QUOTES, 'UTF-8') ?></td>

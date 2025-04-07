@@ -5,29 +5,28 @@ class Message {
 
     // Méthode pour sauvegarder un message dans la base de données
     public static function save($senderId, $receiverId, $messageText) {
-        $dbConnect = new DbConnect();
-        $db = $dbConnect->getConnection();
-        
         try {
-            // Préparer la requête pour insérer un message
-            $sql = "INSERT INTO messages (sender_id, receiver_id, message) VALUES (?, ?, ?)";
-            $stmt = $db->prepare($sql);
-
-            // Exécuter la requête
-            $stmt->execute([$senderId, $receiverId, $messageText]);
-
-            // Vérifier si l'insertion a réussi
-            if ($stmt->rowCount() > 0) {
-                return true;
-            } else {
-                throw new Exception("Erreur lors de l'enregistrement du message.");
-            }
+            $dbConnect = new DbConnect();
+            $db = $dbConnect->getConnection();
+            
+            // Construction du message
+            $message = htmlspecialchars($messageText);
+            
+            // Préparation de la requête SQL
+            $stmt = $db->prepare("INSERT INTO messages (sender_id, receiver_id, message) VALUES (?, ?, ?)");
+            
+            // Exécution de la requête avec les paramètres
+            $stmt->execute([$senderId, $receiverId, $message]);
+    
+            // Vérification si l'insertion a réussi
+            return $stmt->rowCount() > 0;
         } catch (Exception $e) {
-            echo "Erreur : " . $e->getMessage();
+            error_log("Erreur lors de l'enregistrement du message : " . $e->getMessage());
             return false;
         }
     }
-
+    
+    
     // Méthode pour récupérer les messages reçus par un utilisateur
     public static function getReceivedMessages($userId) {
         $dbConnect = new DbConnect();

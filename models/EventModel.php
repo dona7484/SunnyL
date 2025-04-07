@@ -2,12 +2,16 @@
 require_once __DIR__ . '/../Entities/Event.php';
 require_once __DIR__ . '/../config/database.php';
 
+// Dans models/EventModel.php
 class EventModel extends DbConnect {
     public function findAll() {
-        $this->request = "SELECT * FROM events";
-        $result = $this->connection->query($this->request);
-        return $result->fetchAll(PDO::FETCH_CLASS, 'Event');
+        $sql = "SELECT * FROM events";
+        $stmt = $this->connection->query($sql); // $this->connection est maintenant disponible
+        return $stmt->fetchAll(PDO::FETCH_CLASS, 'Event');
     }
+    
+
+    
     public function find($id) {
         // Vérifier si l'ID est valide
         if (!is_numeric($id)) {
@@ -24,24 +28,42 @@ class EventModel extends DbConnect {
         return $event ?: false;  // Retourne l'objet Event ou false si non trouvé
     }
     
-// Méthode de création d'un événement
-public function create(Event $event) {
-    $this->request = $this->connection->prepare("INSERT INTO events (title, description, date, lieu, user_id, alert_time, notification_message, recurrence) VALUES (:title, :description, :date, :lieu, :user_id, :alert_time, :notification_message, :recurrence)");
-    $this->request->bindValue(":title", $event->getTitle());
-    $this->request->bindValue(":description", $event->getDescription());
-    $this->request->bindValue(":date", $event->getDate());
-    $this->request->bindValue(":lieu", $event->getLieu());
-    $this->request->bindValue(":user_id", $event->getUserId());
-    $this->request->bindValue(":alert_time", $event->getAlertTime());
-    $this->request->bindValue(":notification_message", $event->getNotificationMessage());
-    $this->request->bindValue(":recurrence", $event->getRecurrence());
-    $this->executeTryCatch();
+    // Méthode de création d'un événement
+    public function create(Event $event) {
+        $this->request = $this->connection->prepare("INSERT INTO events (title, description, date, lieu, user_id, alert_time, notification_message, recurrence) VALUES (:title, :description, :date, :lieu, :user_id, :alert_time, :notification_message, :recurrence)");
+        $this->request->bindValue(":title", $event->getTitle());
+        $this->request->bindValue(":description", $event->getDescription());
+        $this->request->bindValue(":date", $event->getDate());
+        $this->request->bindValue(":lieu", $event->getLieu());
+        $this->request->bindValue(":user_id", $event->getUserId());
+        $this->request->bindValue(":alert_time", $event->getAlertTime());
+        $this->request->bindValue(":notification_message", $event->getNotificationMessage());
+        $this->request->bindValue(":recurrence", $event->getRecurrence());
+        $this->executeTryCatch();
 
-  // Créer une notification associée à l'événement
-$notifController = new NotificationController();
-$notifController->sendNotification($event->getUserId(), 'event', $event->getNotificationMessage(), $event->getId());
-}
+        // Créer une notification associée à l'événement
+        $notifController = new NotificationController();
+        $notifController->sendNotification($event->getUserId(), 'event', $event->getNotificationMessage(), $event->getId());
+    }
 
+    // Méthode pour récupérer tous les événements associés à un utilisateur (organisateur ou participant)
+    public function findEventsForUser($userId) {
+        // Requête pour récupérer les événements où l'utilisateur est l'organisateur ou un participant
+        $this->request = $this->connection->prepare("
+            SELECT * FROM events 
+            WHERE user_id = :user_id 
+            OR id IN (
+                SELECT event_id FROM participants WHERE user_id = :user_id
+            )
+        ");
+        $this->request->bindParam(':user_id', $userId, PDO::PARAM_INT);
+        $this->request->execute();
+        
+        // Retourner tous les événements associés à l'utilisateur
+        return $this->request->fetchAll(PDO::FETCH_ASSOC);
+    }
+    
+    
     public function update($id, Event $event) {
         $this->request = $this->connection->prepare("UPDATE events SET title = :title, description = :description, date = :date, lieu = :lieu WHERE id = :id");
         $this->request->bindValue(":id", $id);
@@ -137,13 +159,13 @@ $notifController->sendNotification($event->getUserId(), 'event', $event->getNoti
         }
     }
     
-    
     public function getUpcomingAlerts($userId) {
         $sql = "SELECT * FROM events WHERE user_id = :user_id AND alert_time <= NOW() AND is_triggered = 0 ORDER BY alert_time ASC";
         $stmt = $this->connection->prepare($sql);
         $stmt->execute([':user_id' => $userId]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
+
     public function getNotificationsByEventId($eventId) {
         $sql = "SELECT * FROM notifications WHERE event_id = :event_id";
         $stmt = $this->connection->prepare($sql);
@@ -152,7 +174,12 @@ $notifController->sendNotification($event->getUserId(), 'event', $event->getNoti
         // Retourne les notifications sous forme de tableau associatif
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
-     
+    public function markEventAsRead($eventId) {
+        $sql = "UPDATE events SET is_read = 1 WHERE id = :id";
+        $stmt = $this->pdo->prepare($sql);
+        return $stmt->execute([':id' => $eventId]);
+    }
+    
     public function getParticipantsByEventId($eventId) {
         // Exemple de requête pour récupérer les participants d'un événement
         $sql = "SELECT participant_name FROM participants WHERE event_id = :event_id";
@@ -163,4 +190,3 @@ $notifController->sendNotification($event->getUserId(), 'event', $event->getNoti
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 }
-

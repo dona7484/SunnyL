@@ -1,15 +1,28 @@
+<?php 
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+echo "<p style='color:red;'>🔍 SESSION user_id = " . ($_SESSION['user_id'] ?? 'non défini') . "</p>";
+
+// Ajouter une vérification des notifications actuelles
+$notifModel = new NotificationModel();
+$notifs = $notifModel->getUnreadNotifications($_SESSION['user_id'] ?? 0);
+echo "<p style='color:blue;'>Notifications non lues: " . count($notifs) . "</p>";
+?>
+
+
 <!DOCTYPE html>
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <title>Dashboard - SunnyLink</title>
+  <title>Dashboard Senior - SunnyLink</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <style>
-    /* Styles pour l'affichage en tuiles */
     body {
       background: #f7f7f7;
       margin: 0;
       padding: 0;
+      font-family: 'Arial', sans-serif;
     }
     #header {
       display: flex;
@@ -17,16 +30,14 @@
       align-items: center;
       background: #FFD700;
       padding: 10px 20px;
+      color: white;
     }
     #header img {
       width: 40px;
       height: 40px;
       cursor: pointer;
-      margin-right: 10px;
     }
     #header .logo {
-      display: flex;
-      align-items: center;
       font-size: 1.8rem;
       font-weight: bold;
     }
@@ -50,6 +61,7 @@
       cursor: pointer;
       text-align: center;
       transition: transform 0.2s;
+      background-color: #f5f5f5;
     }
     .menuItem:hover {
       transform: scale(1.05);
@@ -61,27 +73,55 @@
     .menuItem span {
       margin-top: 0.5rem;
       font-size: 1.1rem;
+      color: #333;
     }
-    /* Modal pour le diaporama en plein écran */
-    #slideshowModal {
+    .notif-bubble {
       position: fixed;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
-      background: rgba(0,0,0,0.8);
-      display: none;
+      top: 20%;
+      left: 50%;
+      transform: translateX(-50%);
+      background-color: #ffefc1;
+      border: 3px solid #ffc107;
+      border-radius: 20px;
+      padding: 20px 30px;
+      display: flex;
       align-items: center;
-      justify-content: center;
+      gap: 15px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.2);
+      cursor: pointer;
+      animation: slideUp 0.6s ease;
       z-index: 9999;
     }
-    #slideshowModal img {
-      max-width: 80%;
-      max-height: 80%;
-      border: 5px solid #fff;
-      border-radius: 10px;
+
+    .notif-bubble-icon {
+      width: 60px;
     }
+
+    .notif-bubble-text {
+      font-size: 22px;
+      font-weight: bold;
+      color: #333;
+      max-width: 300px;
+    }
+
+    .notif-button {
+      background-color: green;
+      color: white;
+      border-radius: 5px;
+      padding: 10px 20px;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+
+    @keyframes slideUp {
+      from { transform: translate(-50%, 100px); opacity: 0; }
+      to   { transform: translate(-50%, 0); opacity: 1; }
+    }
+
   </style>
 </head>
 <body>
+
 <!-- Barre supérieure -->
 <div id="header">
   <div class="logo">
@@ -91,201 +131,183 @@
   <button id="monCompteBtn" class="btn btn-outline-dark">Mon compte</button>
 </div>
 
-<!-- Partie spécifique selon le rôle -->
+<!-- Partie spécifique au senior -->
 <div class="container mt-4">
-  <?php if ($role === 'senior'): ?>
-    <h2>Dashboard Senior</h2>
-    <p>Bienvenue, <?= htmlspecialchars($_SESSION['name']) ?>.</p>
-    <h4>Vos proches :</h4>
-    <?php if (!empty($familyMembers)): ?>
-      <ul>
-        <?php foreach ($familyMembers as $fm): ?>
-          <li><?= htmlspecialchars($fm['name']) ?> (<?= htmlspecialchars($fm['email']) ?>)</li>
-        <?php endforeach; ?>
-      </ul>
-    <?php else: ?>
-      <p>Aucun proche associé pour l'instant.</p>
-    <?php endif; ?>
-  <?php else: ?>
-    <h2>Dashboard Family Member</h2>
-    <p>Bienvenue, <?= htmlspecialchars($_SESSION['name']) ?>.</p>
-  <?php endif; ?>
+  <h2>Dashboard Senior</h2>
+  <p>Bienvenue, <?= htmlspecialchars($_SESSION['name']) ?>.</p>
 </div>
 
 <!-- Tuiles principales du dashboard -->
 <div id="dashboardContainer">
-  <div class="menuItem" onclick="openPhotos()">
-    <img src="images/IconePhoto.png" alt="Photos">
-    <span>Photos</span>
-  </div>
-  <div class="menuItem" onclick="openMusic()">
-    <img src="images/iconeMusic.png" alt="Musique">
-    <span>Musique</span>
-  </div>
-  <div class="menuItem" onclick="openMessages()">
-    <img src="images/iconeMessage.png" alt="Messages">
-    <span>Messages</span>
-  </div>
-  <div class="menuItem" onclick="openCalls()">
-    <img src="images/IconeAppel.png" alt="Appels">
-    <span>Appels</span>
-  </div>
-  <div class="menuItem" onclick="openAgenda()">
-    <img src="images/iconeAgenda.png" alt="Agenda">
-    <span>Agenda</span>
-  </div>
-  <div class="menuItem" onclick="openRappel()">
-    <img src="images/IconeRappel.png" alt="Rappel">
-    <span>Rappel</span>
-  </div>
+  <?php if ($_SESSION['role'] === 'senior'): ?>
+    <!-- Les éléments spécifiques au senior -->
+    <div class="menuItem" onclick="openMusic()">
+      <img src="images/iconeMusic.png" alt="Musique">
+      <span>Écouter de la musique</span>
+    </div>
+    <div class="menuItem" onclick="receiveCalls()">
+      <img src="images/IconeAppel.png" alt="Appels">
+      <span>Recevoir des appels</span>
+    </div>
+    <div class="menuItem" onclick="receiveRappel()">
+      <img src="images/IconeAgenda.png" alt="Agenda">
+      <span>Recevoir les rappels</span>
+    </div>
+    <div class="menuItem" onclick="receiveMessages()">
+      <img src="images/iconeMessage.png" alt="Messages">
+      <span>Recevoir les messages</span>
+    </div>
+    <div class="menuItem" onclick="receiveEvent()">
+      <img src="images/IconeEvent.png" alt="Evénements">
+      <span>Recevoir les événements</span>
+    </div>
+  <?php endif; ?>
 </div>
 
-<!-- Modal Slideshow (défilement de photos après inactivité)
-<div id="slideshowModal" class="d-flex">
-  <img id="slideshowImage" src="" alt="Slideshow">
-</div> -->
+<!-- Notification -->
+<?php if (count($notifs) > 0): ?>
+    <div id="notif-bubble" class="notif-bubble" style="display:flex;">
+        <img src="images/IconeRappel.png" alt="🔔" class="notif-bubble-icon">
+        <div id="notif-bubble-text" class="notif-bubble-text">
+            <?= htmlspecialchars($notifs[0]['content'], ENT_QUOTES) ?>
+        </div>
+        <!-- Passer l'ID de la notification dans l'attribut data-notif-id -->
+        <button id="mark-as-read-button" class="notif-button" data-notif-id="<?= $notifs[0]['id'] ?>">Lire</button>
+    </div>
+<?php else: ?>
+    <div id="notif-bubble" class="notif-bubble" style="display:none;">
+        <div class="notif-bubble-text">Aucune nouvelle notification</div>
+    </div>
+<?php endif; ?>
 
 <script>
-// ===========================
-// 1) GESTION DE L'INACTIVITÉ
-// ===========================
-let inactivityTimer;
-function resetInactivityTimer() {
-  clearTimeout(inactivityTimer);
-  // Par exemple, 60 secondes avant le lancement du diaporama
-  inactivityTimer = setTimeout(startSlideshow, 60000);
-}
-['mousemove','mousedown','touchstart','keydown'].forEach(evt => document.addEventListener(evt, resetInactivityTimer));
-resetInactivityTimer();
 
-// ===========================
-// 2) LANCER LE DIAPORAMA
-// ===========================
-function startSlideshow() {
-  fetch('index.php?controller=photo&action=getAllForSlideshow')
-    .then(res => res.json())
-    .then(photos => {
-      if (photos.length > 0) {
-        showSlideshow(photos);
-      }
-    })
-    .catch(err => console.error(err));
+const ws = new WebSocket('ws://localhost:8080');
+
+ws.onmessage = function(e) {
+    const data = JSON.parse(e.data);
+    if(data.type === 'message') {
+        showMessageAlert(data);
+    } else if(data.type === 'read_confirmation') {
+        showReadConfirmation(data);
+    }
+};
+
+function showMessageAlert(message) {
+    const bubble = document.getElementById("notif-bubble");
+    bubble.innerHTML = `
+        <p>Nouveau message de ${message.sender_name}</p>
+        <button onclick="markAsRead(${message.id})">Lire</button>
+    `;
+    bubble.style.display = 'block';
 }
 
-let slideshowIndex = 0;
-let slideshowPhotos = [];
-function showSlideshow(photos) {
-  slideshowPhotos = photos;
-  slideshowIndex = 0;
-  document.getElementById('slideshowModal').style.display = 'flex';
-  displaySlideshowPhoto();
+async function markAsRead(messageId) {
+    const response = await fetch('index.php?controller=message&action=markAsRead', {
+        method: 'POST',
+        body: JSON.stringify({ message_id: messageId })
+    });
+    
+    if(response.ok) {
+        ws.send(JSON.stringify({
+            type: 'read_confirmation',
+            message_id: messageId,
+            reader_id: <?= $_SESSION['user_id'] ?>
+        }));
+    }
 }
 
-function displaySlideshowPhoto() {
-  if (slideshowIndex >= slideshowPhotos.length) {
-    slideshowIndex = 0;
+
+  // Fonction pour gérer l'affichage des notifications
+   // Fonction pour gérer l'affichage des notifications
+   function showNotif(message) {
+    const bubble = document.getElementById("notif-bubble");
+    const text = document.getElementById("notif-bubble-text");
+    const audio = new Audio('audio/notif-sound.mp3'); // Chemin vers le son de notification
+
+    text.textContent = message;
+    bubble.style.display = "flex"; // Affiche la bulle de notification
+
+    audio.play().catch(e => console.warn("🔇 Son bloqué :", e)); // Joue le son de notification
+
+    // Lecture vocale du message
+    const msg = new SpeechSynthesisUtterance(message);
+    msg.lang = 'fr-FR';
+    window.speechSynthesis.speak(msg);
   }
-  const photo = slideshowPhotos[slideshowIndex];
-  const slideshowImage = document.getElementById('slideshowImage');
-  slideshowImage.src = photo.url;
-  slideshowIndex++;
-  setTimeout(displaySlideshowPhoto, 5000);
+
+// Fonction pour marquer la notification comme lue
+const markAsReadBtn = document.getElementById('mark-as-read-button');
+if (markAsReadBtn) {
+    markAsReadBtn.addEventListener('click', function() {
+        const notifId = this.dataset.notifId;  // Récupérer l'ID de la notification depuis l'attribut data
+        markNotificationAsRead(notifId);       // Passer l'ID à la fonction qui marque la notification comme lue
+    });
 }
 
-document.getElementById('slideshowModal').addEventListener('click', () => {
-  hideSlideshow();
-  resetInactivityTimer();
-});
-function hideSlideshow() {
-  document.getElementById('slideshowModal').style.display = 'none';
-}
+// Fonction pour marquer la notification comme lue côté serveur
+function markNotificationAsRead(notifId) {
+  fetch('index.php?controller=notification&action=markNotificationAsRead', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ notif_id: notifId })
+  })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        const notifBubble = document.getElementById("notif-bubble");
+        notifBubble.style.display = "none";
 
-// ===========================
-// 3) DÉTECTION NOUVELLE PHOTO
-// ===========================
-setInterval(checkNewPhoto, 15000);
-function checkNewPhoto() {
-  fetch('index.php?controller=photo&action=getLastPhoto')
-    .then(res => res.json())
-    .then(photo => {
-      if (photo && photo.is_viewed == 0) {
-        showNewPhotoModal(photo);
+        // Afficher les détails associés
+        const details = data.data;
+        if (details.type === "photo") {
+          // Afficher une photo
+          const img = document.createElement("img");
+          img.src = details.url;
+          img.alt = "Photo envoyée";
+          img.style.maxWidth = "100%";
+          document.body.appendChild(img);
+
+          alert(`Message associé : ${details.message}`);
+        } else if (details.type === "event") {
+          alert(`Événement : ${details.title}\nDescription : ${details.description}`);
+        } else if (details.type === "message") {
+          alert(`Message reçu : ${details.content}`);
+        }
+      } else {
+        alert('Erreur : ' + data.error);
       }
     })
-    .catch(err => console.error(err));
+    .catch(error => console.error('Erreur:', error));
 }
 
-function showNewPhotoModal(photo) {
-  const modal = document.createElement('div');
-  modal.style = `
-    position: fixed; top:0; left:0; width:100%; height:100%;
-    background: rgba(0,0,0,0.8);
-    display: flex; align-items:center; justify-content:center;
-    z-index:9999;
-  `;
-  modal.innerHTML = `
-    <div style="background:#fff; padding:20px; text-align:center; max-width:90%; max-height:90%; overflow:auto; border-radius:10px;">
-      <img src="${photo.url}" alt="Nouvelle photo" style="max-width:100%; max-height:50vh;">
-      <p style="margin-top:1rem;">${photo.message}</p>
-      <button id="playMessageBtn" class="btn btn-primary">🔊 Écouter le message</button>
-      <button id="closeModalBtn" class="btn btn-secondary">Fermer</button>
-    </div>
-  `;
-  document.body.appendChild(modal);
-  document.getElementById('playMessageBtn').addEventListener('click', () => {
-    speak(photo.message);
-    markPhotoAsViewed(photo.id);
-  });
-  document.getElementById('closeModalBtn').addEventListener('click', () => {
-    modal.remove();
-  });
-}
 
-function markPhotoAsViewed(photoId) {
-  fetch('index.php?controller=photo&action=markViewed', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json'},
-    body: JSON.stringify({ photoId })
-  })
-  .then(res => res.json())
-  .then(data => console.log('Photo marquée comme vue:', data))
-  .catch(err => console.error(err));
-}
+// Vérification des notifications toutes les 5 secondes
+// Modifier cette section dans le setInterval de dashboard.php
+setInterval(() => {
+  fetch('index.php?controller=notification&action=getUserNotifications')
+    .then(res => res.json())
+    .then(data => {
+      // Affiche uniquement si des notifications non lues existent
+      if (data && data.length > 0) {
+        // Vérification que la notification n'est pas déjà affichée
+        const currentNotifId = document.querySelector('#mark-as-read-button')?.dataset?.notifId;
+        if (!currentNotifId || currentNotifId != data[0].id) {
+          showNotif(data[0].content);
+          
+          // Mettre à jour l'ID dans le bouton
+          const button = document.querySelector('#mark-as-read-button');
+          if (button) button.dataset.notifId = data[0].id;
+        }
+      } else {
+        // Cacher la notification s'il n'y en a plus
+        document.getElementById("notif-bubble").style.display = 'none';
+      }
+    })
+    .catch(err => console.error('Erreur:', err));
+}, 5000);
 
-// ===========================
-// 4) SYNTHÈSE VOCALE
-// ===========================
-function speak(text) {
-  const msg = new SpeechSynthesisUtterance(text);
-  msg.lang = 'fr-FR';
-  window.speechSynthesis.speak(msg);
-}
-function toggleVolume() {
-  window.speechSynthesis.cancel();
-  alert("Fonction mute/unmute à implémenter si besoin.");
-}
-
-// ===========================
-// 5) BOUTONS DE NAVIGATION
-// ===========================
-function openPhotos() {
-  window.location.href = 'index.php?controller=photo&action=gallery';
-}
-function openMusic() {
-  window.location.href = 'index.php?controller=music&action=index';
-}
-function openMessages() {
-  window.location.href = 'index.php?controller=message&action=received';
-}
-function openCalls() {
-  window.location.href = 'index.php?controller=call&action=index';
-}
-function openAgenda() {
-  window.location.href = 'index.php?controller=event&action=index';
-}
-function openRappel() {
-  window.location.href = 'index.php?controller=rappel&action=index';
-}
 </script>
+
 </body>
 </html>

@@ -24,9 +24,9 @@ function showNotif(message) {
 
     audio.pause();
     audio.currentTime = 0;
-    audio.play().catch(e => console.warn("🔇 Bloqué :", e));
+    audio.play().catch(e => console.warn("Son bloqué :", e));
 
-    speakMessage(message);
+    speakMessage(message); // Lecture vocale
 }
 
 setInterval(() => {

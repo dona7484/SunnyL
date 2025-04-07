@@ -2,7 +2,6 @@
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
-$_SESSION['user_id'] = 1;
 ?>
 echo "<p style='color:red;'>🔍 SESSION user_id = " . ($_SESSION['user_id'] ?? 'non défini') . "</p>";
 ?>
@@ -40,24 +39,28 @@ function showNotif(message) {
     audio.currentTime = 0;
     audio.play().catch(e => console.warn("🔇 Bloqué :", e));
 
-    speakMessage(message);
+    // Lecture vocale du message
+    const msg = new SpeechSynthesisUtterance(message);
+    msg.lang = 'fr-FR';
+    window.speechSynthesis.speak(msg);
 }
 
+// Vérification des notifications toutes les 5 secondes
 setInterval(() => {
-    fetch("index.php?controller=alert&action=check")
-    .then(res => res.json())
-    .then(data => {
-        console.log("💬 Réponse du serveur :", data); 
-
-        if (data.should_alert) {
-            if (data.type === "event") {
-                window.location.href = `index.php?controller=home&action=eventAlert&id=${data.id}`;
-            } else {
-                showNotif(data.message);
-            }
-        }
+  fetch('index.php?controller=notification&action=getUserNotifications')
+    .then(res => {
+      console.log("Statut de la réponse:", res.status);
+      return res.json();
     })
-    .catch(err => console.error("❌ Erreur dans fetch :", err));
+    .then(data => {
+      console.log("Données reçues:", data);
+      if (data && data.length > 0) {
+        showNotif(data[0].content);
+      }
+    })
+    .catch(err => {
+      console.error('Erreur dans fetch notifications:', err);
+    });
 }, 5000);
 
 </script>

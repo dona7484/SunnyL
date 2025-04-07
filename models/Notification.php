@@ -15,6 +15,14 @@ class Notification {
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    public static function getById($id) {
+        $db = DbConnect::getConnection();
+        $stmt = $db->prepare("SELECT * FROM notifications WHERE id = :id LIMIT 1");
+        $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetch(PDO::FETCH_ASSOC); // Retourne une notification ou null
+    }
+
     public static function markAsSeen($id) {
         $db = DbConnect::getConnection();
         $stmt = $db->prepare("UPDATE notifications SET is_read = 1 WHERE id = ?");

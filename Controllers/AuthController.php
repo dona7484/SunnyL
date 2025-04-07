@@ -6,25 +6,25 @@ class AuthController {
         if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $email = $_POST['email'];
             $password = $_POST['password'];
-            $interface = $_POST['interface'] ?? 'default';
+            $interface = $_POST['interface'] ?? 'default'; // Interface choisie
     
+            // Connexion à la base de données
             $db = new DbConnect();
             $connection = $db->getConnection();
             $query = $connection->prepare("SELECT * FROM users WHERE email = :email");
-            $query->execute(['email' => $email]);            
+            $query->execute(['email' => $email]);
             $query->setFetchMode(PDO::FETCH_OBJ);
             $user = $query->fetch();
     
             if ($user && password_verify($password, $user->password)) {
-                // Stocker initialement les infos de l'utilisateur
+                // Stocker les informations de l'utilisateur dans la session
                 $_SESSION['user_id'] = $user->id;
                 $_SESSION['name'] = $user->name;
                 $_SESSION['role'] = $user->role;
                 session_regenerate_id(true);
     
-                // Si l'interface choisie est "tablet" et que l'utilisateur est de type famille,
-                // récupérer l'ID du senior associé
-                if ($interface === 'tablet' && $user->role === 'famille') {
+                // Si l'interface est 'tablet' et que le rôle est famille, on redirige vers un tableau de bord senior
+                if ($interface === 'tablet' && $user->role === 'familymember') {
                     $seniorId = $this->getSeniorForFamilyMember($user->id);
                     if ($seniorId) {
                         $_SESSION['user_id'] = $seniorId;
@@ -32,15 +32,15 @@ class AuthController {
                     }
                 }
     
-                // Rediriger selon le rôle final
+                // Rediriger vers le tableau de bord approprié en fonction du rôle
                 if ($_SESSION['role'] === 'senior') {
                     header('Location: index.php?controller=home&action=dashboard');
                 } else {
-                    header('Location: index.php?controller=home&action=dashboard');
+                    header('Location: index.php?controller=home&action=family_dashboard');
                 }
                 exit;
             } else {
-                $erreur = "Nom d'utilisateur ou mot de passe incorrect.";
+                $erreur = "Identifiants incorrects.";
                 $this->render('auth/login', ['erreur' => $erreur]);
             }
         } else {
@@ -48,20 +48,12 @@ class AuthController {
         }
     }
     
-    /**
-     * Méthode pour récupérer l'ID du senior associé à un family member.
-     * Cette méthode interroge la table "relations" qui doit contenir (senior_id, family_id).
-     */
-    private function getSeniorForFamilyMember($familyMemberId) {
-        // Assurez-vous que la table "relations" existe et contient des enregistrements.
-        $dbConnect = new DbConnect();
-        $db = $dbConnect->getConnection();
-        $stmt = $db->prepare("SELECT senior_id FROM relations WHERE family_id = ?");
-        $stmt->execute([$familyMemberId]);
-        $result = $stmt->fetch(PDO::FETCH_OBJ);
-        return $result ? $result->senior_id : null;
+    public function getSeniorForFamilyMember($familyMemberId) {
+        $query = $this->connection->prepare("SELECT senior_id FROM family_members WHERE family_member_id = :id");
+        $query->execute(['id' => $familyMemberId]);
+        $result = $query->fetch(PDO::FETCH_ASSOC);
+        return $result ? $result['senior_id'] : null;
     }
-    
 
     public function render($view, $data = [])
     {
@@ -71,7 +63,6 @@ class AuthController {
 
     public function logout()
     {
-        // Vérifier que la session est démarrée
         if (session_status() === PHP_SESSION_NONE) {
             session_start();
         }

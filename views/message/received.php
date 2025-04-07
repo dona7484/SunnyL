@@ -17,3 +17,18 @@
         <?php endif; ?>
     </div>
 </div>
+
+<script>
+// Connexion WebSocket pour afficher les messages en temps réel
+const socket = new WebSocket("ws://localhost:8080");
+
+socket.addEventListener("message", function(event) {
+    const message = JSON.parse(event.data);
+    console.log("Message reçu : ", message);
+
+    // Affichage du message dans l'interface utilisateur
+    const messageElement = document.createElement('div');
+    messageElement.textContent = message.message;
+    document.getElementById("messages").appendChild(messageElement);
+});
+</script>
