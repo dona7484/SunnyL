@@ -15,14 +15,21 @@ class AuthController {
             $query->execute(['email' => $email]);
             $query->setFetchMode(PDO::FETCH_OBJ);
             $user = $query->fetch();
-    
             if ($user && password_verify($password, $user->password)) {
-                // Stocker les informations de l'utilisateur dans la session
                 $_SESSION['user_id'] = $user->id;
                 $_SESSION['name'] = $user->name;
-                $_SESSION['role'] = $user->role;
+                $_SESSION['role'] = $user->role; // Cette ligne doit être présente
                 session_regenerate_id(true);
-    
+            
+                // Redirection en fonction du rôle
+                if ($_SESSION['role'] === 'senior') {
+                    header('Location: index.php?controller=home&action=dashboard');
+                } else {
+                    header('Location: index.php?controller=home&action=family_dashboard');
+                }
+                exit;
+            }
+            
                 // Si l'interface est 'tablet' et que le rôle est famille, on redirige vers un tableau de bord senior
                 if ($interface === 'tablet' && $user->role === 'familymember') {
                     $seniorId = $this->getSeniorForFamilyMember($user->id);
@@ -43,9 +50,6 @@ class AuthController {
                 $erreur = "Identifiants incorrects.";
                 $this->render('auth/login', ['erreur' => $erreur]);
             }
-        } else {
-            $this->render('auth/login');
-        }
     }
     
     public function getSeniorForFamilyMember($familyMemberId) {

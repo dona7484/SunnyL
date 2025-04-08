@@ -2,8 +2,7 @@
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
-ini_set('display_errors', 1);
-error_reporting(E_ALL);
+
 
 
 // Utilisez le bon chemin vers le fichier User.php dans le dossier models

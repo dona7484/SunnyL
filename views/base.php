@@ -1,10 +1,12 @@
 <?php
-ini_set('display_errors', 1);
-error_reporting(E_ALL);
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}// Au début de base.php
+echo "<pre>";
+print_r($_SESSION);
+echo "</pre>";
 
-if (session_status() == PHP_SESSION_NONE) {
-    session_start(); // Démarrer la session seulement si elle n'est pas déjà active
-}
+echo "<pre>Session Role: " . ($_SESSION['role'] ?? 'non défini') . "</pre>";
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -16,7 +18,6 @@ if (session_status() == PHP_SESSION_NONE) {
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
     integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
     <link rel="stylesheet" href="style.css">
-    <script src="https://kit.fontawesome.com/44a16ebfd9.js" crossorigin="anonymous"></script>
 </head>
 <body>
     <div class="container">
@@ -26,46 +27,72 @@ if (session_status() == PHP_SESSION_NONE) {
                 <p>Bienvenue, <?= htmlspecialchars($_SESSION['name'], ENT_QUOTES); ?>!</p>
             <?php endif; ?>
         </header>
-        <nav class="navbar navbar-expand-lg navbar-light bg-light">
-            <div class="container-fluid">
-                <a class="navbar-brand" href="#">SunnyLink</a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNavDropdown"
-                aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-                <div class="collapse navbar-collapse" id="navbarNavDropdown">
-                    <ul class="navbar-nav">
-                        <li class="nav-item">
-                            <a class="nav-link active" aria-current="page" href="index.php">Accueil</a>
-                        </li>
-                        <li class="nav-item">
-    <a class="nav-link" href="index.php?controller=event&action=index">Événements</a>
-</li>
-<li class="nav-item">
-<a class="nav-link" href="index.php?controller=photo&action=form">Envoyer une photo</a>
-<a class="nav-link" href="index.php?controller=photo&action=gallery&id=<?= $_SESSION['user_id'] ?? 1 ?>">Galerie</a>
-            </li>
-            <a href="index.php?controller=message&action=send" class="btn btn-primary">Envoyer un message</a>
-<a href="index.php?controller=message&action=received" class="btn btn-info">Voir mes messages</a>
 
- <li class="nav-item">
-                            <?php if (isset($_SESSION['name'])): ?>
-                                <a class="nav-link" href="index.php?controller=auth&action=logout">Se déconnecter</a>
-                            <?php else: ?>
-                                <a class="nav-link" href="index.php?controller=auth&action=login">Se connecter</a>
-                            <?php endif; ?>
-                        </li>
-                    </ul>
+        <!-- Afficher la barre d'avertissement si non connecté -->
+        <?php if (!isset($_SESSION['role'])): ?>
+            <nav class="navbar navbar-light bg-warning">
+                <div class="container-fluid">
+                    <a class="navbar-brand" href="#">SunnyLink</a>
+                    <span class="navbar-text">Veuillez vous connecter pour accéder à toutes les fonctionnalités.</span>
                 </div>
-            </div>
-        </nav>
+            </nav>
+        <?php endif; ?>
+        <?php if (isset($_SESSION['user_id'])): ?>
+    <div class="text-center mt-3">
+        <a href="index.php?controller=auth&action=logout" class="btn btn-danger">Se déconnecter</a>
+    </div>
+<?php endif; ?>
+
+        <!-- Afficher la barre de navigation uniquement pour les family members -->
+        <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'famille'): ?>
+            <nav class="navbar navbar-expand-lg navbar-light bg-light">
+                <div class="container-fluid">
+                    <a class="navbar-brand" href="#">SunnyLink</a>
+                    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNavDropdown"
+                    aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                        <span class="navbar-toggler-icon"></span>
+                    </button>
+                    <div class="collapse navbar-collapse" id="navbarNavDropdown">
+                        <ul class="navbar-nav">
+                            <li class="nav-item">
+                                <a class="nav-link active" aria-current="page" href="index.php">Accueil</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="index.php?controller=event&action=index">Événements</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="index.php?controller=photo&action=form">Envoyer une photo</a>
+                                <a class="nav-link" href="index.php?controller=photo&action=gallery&id=<?= $_SESSION['user_id'] ?? 1 ?>">Galerie</a>
+                            </li>
+                            <a href="index.php?controller=message&action=send" class="btn btn-primary">Envoyer un message</a>
+                            <a href="index.php?controller=message&action=received" class="btn btn-info">Voir mes messages</a>
+
+                            <li class="nav-item">
+                                <?php if (isset($_SESSION['name'])): ?>
+                                    <a class="nav-link" href="index.php?controller=auth&action=logout">Se déconnecter</a>
+                                <?php else: ?>
+                                    <a class="nav-link" href="index.php?controller=auth&action=login">Se connecter</a>
+                                <?php endif; ?>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </nav>
+        <?php endif; ?>
+
+        <!-- Contenu principal -->
         <main>
             <?= $content ?>
         </main>
+
+        <!-- Footer -->
         <footer class="text-center">
             <p>&copy; 2025 - SunnyLink</p>
         </footer>
     </div>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+    integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
 </body>
 </html>

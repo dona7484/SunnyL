@@ -2,12 +2,12 @@
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
-echo "<p style='color:red;'>🔍 SESSION user_id = " . ($_SESSION['user_id'] ?? 'non défini') . "</p>";
+// echo "<p style='color:red;'>🔍 SESSION user_id = " . ($_SESSION['user_id'] ?? 'non défini') . "</p>";
 
 // Ajouter une vérification des notifications actuelles
 $notifModel = new NotificationModel();
 $notifs = $notifModel->getUnreadNotifications($_SESSION['user_id'] ?? 0);
-echo "<p style='color:blue;'>Notifications non lues: " . count($notifs) . "</p>";
+// echo "<p style='color:blue;'>Notifications non lues: " . count($notifs) . "</p>";
 ?>
 
 
@@ -18,63 +18,82 @@ echo "<p style='color:blue;'>Notifications non lues: " . count($notifs) . "</p>"
   <title>Dashboard Senior - SunnyLink</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <style>
-    body {
-      background: #f7f7f7;
-      margin: 0;
-      padding: 0;
-      font-family: 'Arial', sans-serif;
-    }
-    #header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      background: #FFD700;
-      padding: 10px 20px;
-      color: white;
-    }
-    #header img {
-      width: 40px;
-      height: 40px;
-      cursor: pointer;
-    }
-    #header .logo {
-      font-size: 1.8rem;
-      font-weight: bold;
-    }
-    #dashboardContainer {
-      display: flex;
-      justify-content: center;
-      flex-wrap: wrap;
-      gap: 2rem;
-      margin-top: 2rem;
-    }
-    .menuItem {
-      width: 140px;
-      height: 140px;
-      background: white;
-      border-radius: 15px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-      cursor: pointer;
-      text-align: center;
-      transition: transform 0.2s;
-      background-color: #f5f5f5;
-    }
-    .menuItem:hover {
-      transform: scale(1.05);
-    }
-    .menuItem img {
-      width: 60px;
-      height: 60px;
-    }
-    .menuItem span {
-      margin-top: 0.5rem;
-      font-size: 1.1rem;
-      color: #333;
-    }
+<style>
+body {
+            font-family: Arial, sans-serif;
+            background-color:rgb(255, 255, 255);
+            margin: 0;
+            padding: 0;
+        }
+        #header {
+            background-color: #FFD700;
+            color: white;
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        #header img {
+            width: 30px;
+            cursor: pointer;
+        }
+        #dashboardContainer {
+            display: flex;
+            height: 100vh; /* Prend toute la hauteur de l'écran */
+        }
+        .leftSection {
+            flex: 2; /* Occupe tout l'espace disponible à gauche */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color:rgb(242, 239, 244); /* Couleur de fond */
+        }
+
+        .photoSunnylink {
+            width: 100%; /* Ajustez selon vos besoins */
+            height: auto;
+        }
+
+        .rightSection {
+            flex: 2; /* Occupe deux fois plus d'espace que la section gauche */
+            display: grid;
+            grid-template-columns: repeat(2, 1fr); /* Deux colonnes pour les boutons */
+            gap: 20px;
+            padding: 20px;
+            background-color:rgb(242, 239, 244); /* Couleur de fond */
+        }
+
+        .menuItem {
+            width: 140px; /* Agrandissez si nécessaire */
+            height: 140px; /* Agrandissez si nécessaire */
+            border-radius: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            box-shadow: 0px 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .menuItem img {
+            width: 60px; /* Ajustez la taille des icônes */
+        }
+
+        .menuItem span {
+            margin-top: .5rem;
+        }
+
+        /* Couleurs d'arrière-plan pour chaque bouton */
+        .Photos { background-color: #87CEEB; }
+        .musique { background-color: #FFD700; }
+        .Messages { background-color: #FFB6C1; }
+        .appels { background-color: #ADD8E6; }
+        .agenda { background-color: #DDA0DD; }
+        .rappels { background-color: #98FB98; }
+        .menuItem:hover {
+            transform: scale(1.05); /* Agrandit légèrement au survol */
+            transition: transform 0.2s;
+        }
     .notif-bubble {
       position: fixed;
       top: 20%;
@@ -117,53 +136,73 @@ echo "<p style='color:blue;'>Notifications non lues: " . count($notifs) . "</p>"
       from { transform: translate(-50%, 100px); opacity: 0; }
       to   { transform: translate(-50%, 0); opacity: 1; }
     }
+    .oldPerson {
+  grid-column: span 1; /* L'image occupe une seule colonne */
+  display: flex;
+  justify-content: flex-start; /* Aligner à gauche */
+  align-items: center; /* Centrer verticalement si nécessaire */
+}
 
   </style>
 </head>
 <body>
 
-<!-- Barre supérieure -->
+
 <div id="header">
-  <div class="logo">
-    <img src="images/IconeSourdine.png" alt="Volume" onclick="toggleVolume()">
-    SunnyLink
-  </div>
-  <button id="monCompteBtn" class="btn btn-outline-dark">Mon compte</button>
+    <div>
+        <img src="images/IconeSourdine.png" alt="Volume" onclick="toggleVolume()">
+        <span>SunnyLink</span>
+    </div>
+    <button id="monCompteBtn" class="btn btn-outline-dark">Mon compte</button>
 </div>
-
-<!-- Partie spécifique au senior -->
-<div class="container mt-4">
-  <h2>Dashboard Senior</h2>
-  <p>Bienvenue, <?= htmlspecialchars($_SESSION['name']) ?>.</p>
-</div>
-
-<!-- Tuiles principales du dashboard -->
 <div id="dashboardContainer">
-  <?php if ($_SESSION['role'] === 'senior'): ?>
-    <!-- Les éléments spécifiques au senior -->
-    <div class="menuItem" onclick="openMusic()">
-      <img src="images/iconeMusic.png" alt="Musique">
-      <span>Écouter de la musique</span>
+    <div class="leftSection">
+        <img src="images/OldPerson.jpg" alt="SunnyLink" class="photoSunnylink">
     </div>
-    <div class="menuItem" onclick="receiveCalls()">
-      <img src="images/IconeAppel.png" alt="Appels">
-      <span>Recevoir des appels</span>
-    </div>
-    <div class="menuItem" onclick="receiveRappel()">
-      <img src="images/IconeAgenda.png" alt="Agenda">
-      <span>Recevoir les rappels</span>
-    </div>
-    <div class="menuItem" onclick="receiveMessages()">
-      <img src="images/iconeMessage.png" alt="Messages">
-      <span>Recevoir les messages</span>
-    </div>
-    <div class="menuItem" onclick="receiveEvent()">
-      <img src="images/IconeEvent.png" alt="Evénements">
-      <span>Recevoir les événements</span>
-    </div>
-  <?php endif; ?>
-</div>
 
+    <!-- Boutons à droite -->
+    <div class="rightSection">
+        <!-- Bouton Photos -->
+        <div class="menuItem Photos" onclick="openPhotos()">
+            <img src="images/IconePhoto.png" alt="Photos">
+            <span>Photos</span>
+        </div>
+
+        <!-- Bouton Musique -->
+        <div class="menuItem musique" onclick="openSpotify()">
+            <img src="images/iconeMusic.png" alt="Musique">
+            <span>Musique</span>
+        </div>
+
+        <!-- Bouton Messages -->
+        <div class="menuItem Messages" onclick="openMessages()">
+            <img src="images/iconeMessage.png" alt="Messages">
+            <span>Messages</span>
+        </div>
+
+        <!-- Bouton Appels -->
+        <div class="menuItem appels" onclick="openCalls()">
+            <img src="images/IconeTel.jpg" alt="Appels">
+            <span>Appels</span>
+        </div>
+
+        <!-- Bouton Agenda -->
+        <div class="menuItem agenda" onclick="openAgenda()">
+            <img src="images/iconeAgenda.png" alt="Agenda">
+            <span>Agenda</span>
+        </div>
+
+        <!-- Bouton Rappels -->
+        <div class="menuItem rappels" onclick="openReminders()">
+            <img src="images/IconeRappel.png" alt="Rappels">
+            <span>Rappels</span>
+        </div>
+    </div>
+</div>
+<div id="notif-bubble" class="notif-bubble" style="display:none;">
+    <img src="images/IconeRappel.png" alt="">
+    <span id="notif-text"></span>
+</div>
 <!-- Notification -->
 <?php if (count($notifs) > 0): ?>
     <div id="notif-bubble" class="notif-bubble" style="display:flex;">
@@ -181,7 +220,29 @@ echo "<p style='color:blue;'>Notifications non lues: " . count($notifs) . "</p>"
 <?php endif; ?>
 
 <script>
+function openPhotos() {
+    window.location.href = 'index.php?controller=photo&action=gallery';
+}
 
+function openSpotify() {
+    window.open('https://open.spotify.com', '_blank');
+}
+
+function openMessages() {
+    window.location.href = 'index.php?controller=message&action=received';
+}
+
+function openCalls() {
+    alert("La fonctionnalité d'appels n'est pas encore disponible.");
+}
+
+function openAgenda() {
+    window.location.href = 'index.php?controller=event&action=index';
+}
+
+function openReminders() {
+    window.location.href = 'index.php?controller=notification&action=index';
+}
 const ws = new WebSocket('ws://localhost:8080');
 
 ws.onmessage = function(e) {
@@ -216,7 +277,6 @@ async function markAsRead(messageId) {
         }));
     }
 }
-
 
   // Fonction pour gérer l'affichage des notifications
    // Fonction pour gérer l'affichage des notifications

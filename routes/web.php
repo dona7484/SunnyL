@@ -28,3 +28,6 @@ $router->post('/alerts/check', [AlertController::class, 'check']);
 $router->get('/message/send', [MessageController::class, 'send']); // Formulaire d'envoi de message
 $router->get('/message/received', [MessageController::class, 'received']); // Affichage des messages reçus
 
+$router->get('/dashboard', [HomeController::class, 'dashboard']);
+$router->get('/photo/slideshow', [PhotoController::class, 'getAllForSlideshow']);
+$router->post('/notification/check', [NotificationController::class, 'check']);
