@@ -6,6 +6,9 @@ class Photo {
         $db = $dbConnect->getConnection();
         $stmt = $db->prepare("INSERT INTO photos (user_id, sender_id, url, message) VALUES (?, ?, ?, ?)");
         $stmt->execute([$seniorId, $senderId, $url, $message]);
+        
+        // Retourner l'ID de la photo nouvellement créée
+        return $db->lastInsertId();
     }
     
     

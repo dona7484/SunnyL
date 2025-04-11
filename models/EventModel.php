@@ -29,22 +29,27 @@ class EventModel extends DbConnect {
     }
     
     // Méthode de création d'un événement
-    public function create(Event $event) {
-        $this->request = $this->connection->prepare("INSERT INTO events (title, description, date, lieu, user_id, alert_time, notification_message, recurrence) VALUES (:title, :description, :date, :lieu, :user_id, :alert_time, :notification_message, :recurrence)");
-        $this->request->bindValue(":title", $event->getTitle());
-        $this->request->bindValue(":description", $event->getDescription());
-        $this->request->bindValue(":date", $event->getDate());
-        $this->request->bindValue(":lieu", $event->getLieu());
-        $this->request->bindValue(":user_id", $event->getUserId());
-        $this->request->bindValue(":alert_time", $event->getAlertTime());
-        $this->request->bindValue(":notification_message", $event->getNotificationMessage());
-        $this->request->bindValue(":recurrence", $event->getRecurrence());
-        $this->executeTryCatch();
-
-        // Créer une notification associée à l'événement
-        $notifController = new NotificationController();
-        $notifController->sendNotification($event->getUserId(), 'event', $event->getNotificationMessage(), $event->getId());
-    }
+        public function create(Event $event) {
+            $this->request = $this->connection->prepare("INSERT INTO events (title, description, date, lieu, user_id, alert_time, notification_message, recurrence) VALUES (:title, :description, :date, :lieu, :user_id, :alert_time, :notification_message, :recurrence)");
+            $this->request->bindValue(":title", $event->getTitle());
+            $this->request->bindValue(":description", $event->getDescription());
+            $this->request->bindValue(":date", $event->getDate());
+            $this->request->bindValue(":lieu", $event->getLieu());
+            $this->request->bindValue(":user_id", $event->getUserId());
+            $this->request->bindValue(":alert_time", $event->getAlertTime());
+            $this->request->bindValue(":notification_message", $event->getNotificationMessage());
+            $this->request->bindValue(":recurrence", $event->getRecurrence());
+            $this->executeTryCatch();
+            
+            // Récupérer l'ID de l'événement créé
+            $eventId = $this->connection->lastInsertId();
+            
+            // Définir l'ID dans l'objet Event
+            $event->setId($eventId);
+            
+            return $eventId;
+        }
+        
 
     // Méthode pour récupérer tous les événements associés à un utilisateur (organisateur ou participant)
     public function findEventsForUser($userId) {

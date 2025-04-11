@@ -25,6 +25,20 @@ class Message {
             return false;
         }
     }
+    public static function saveAudio($senderId, $receiverId, $audioData) {
+        try {
+            $dbConnect = new DbConnect();
+            $db = $dbConnect->getConnection();
+            
+            $stmt = $db->prepare("INSERT INTO audio_messages (sender_id, receiver_id, audio_data, created_at) VALUES (?, ?, ?, NOW())");
+            $stmt->execute([$senderId, $receiverId, $audioData]);
+    
+            return $db->lastInsertId();
+        } catch (Exception $e) {
+                    error_log("Erreur lors de l'enregistrement du message audio : " . $e->getMessage());
+                    return false;
+                }
+            }
     
     
     // Méthode pour récupérer les messages reçus par un utilisateur

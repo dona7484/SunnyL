@@ -32,23 +32,39 @@ class PhotoController extends Controller {
             // Enregistrement du fichier dans le dossier uploads
             $uploadUrl = Photo::saveToStorage($file);
     
-            // Sauvegarde des informations en base de données avec l'ID du senior et celui du family member
-            Photo::save($seniorId, $senderId, $uploadUrl, $message);
+// Sauvegarde des informations en base de données avec l'ID du senior et celui du family member
+$photoId = Photo::save($seniorId, $senderId, $uploadUrl, $message);
+
+// Envoi d'une notification au senior avec tous les paramètres requis
+$notifController = new NotificationController();
+$notifId = $notifController->sendNotification(
+    $seniorId, 
+    'photo',
+    'Nouvelle photo reçue : ' . $message, 
+    $photoId,
+    false // Ce paramètre indique que ce n'est pas une notification de confirmation
+);
+
+if ($notifId) {
+    // La notification a été créée avec succès
+    error_log("Notification de photo envoyée - Type: photo, ID: " . $notifId . ", Message: " . $message);
+} else {
+    // Il y a eu un problème lors de l'envoi de la notification
+    error_log("Erreur lors de l'envoi de la notification de photo");
+}
     
-            // Envoi d'une notification au senior
-            $notifController = new NotificationController();
-            $notifController->sendNotification($seniorId, 'photo', $message);
-    
-            echo json_encode([
-                "status" => "ok",
-                "message" => "Photo envoyée avec succès et notification déclenchée."
-            ]);
-        } catch (Exception $e) {
-            echo json_encode([
-                "status" => "error",
-                "message" => $e->getMessage()
-            ]);
-        }
+                echo json_encode([
+                    "status" => "ok",
+                    "message" => "Photo envoyée avec succès.",
+                    "photoId" => $photoId,
+                    "notifId" => $notifId // ID de la notification créée
+                ]);
+            } catch (Exception $e) {
+                echo json_encode([
+                    "status" => "error",
+                    "message" => $e->getMessage()
+                ]);
+            }
     }
     
     /**

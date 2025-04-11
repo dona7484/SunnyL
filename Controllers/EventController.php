@@ -35,9 +35,17 @@ public function index() {
     
                 // Envoyer une notification personnalisée à chaque senior
                 $notificationController = new NotificationController();
-                foreach ($seniors as $senior) {
-                    $notificationController->sendNotification($senior['user_id'], 'event', $notificationMessage, $eventId);
-                }
+                
+// Envoyer une notification à chaque senior
+foreach ($seniors as $senior) {
+    $notifController->sendNotification(
+        $senior['user_id'], 
+        'event',
+        'Nouvel événement : ' . $event->getTitle(), 
+        $event->getId(),
+        false
+    );
+}
     
                 echo json_encode(['success' => true, 'message' => 'Événement créé et notification envoyée!']);
             } else {
@@ -68,88 +76,79 @@ public function index() {
             'notifications' => $notifications
         ]);
     }
-    
-    
-    
     public function add() {
+        // Initialiser $event comme null pour éviter l'erreur "undefined variable"
+        $event = null;
+        
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            // Créer une nouvelle instance de l'événement
+            // Créer l'objet Event à partir des données du formulaire
             $event = new Event();
             $event->setTitle($_POST['title']);
             $event->setDescription($_POST['description']);
             $event->setDate($_POST['date']);
-            $event->setLieu($_POST['lieu']);
-            $event->setRecurrence($_POST['recurrence']);
-            $event->setAlertTime($_POST['alertTime']);
-            $event->setNotificationMessage($_POST['notificationMessage']);
+            $event->setLieu($_POST['lieu'] ?? null);
             $event->setUserId($_SESSION['user_id']);
-    
-            // Vérifie si 'recurrence' est défini et récupère sa valeur, sinon la valeur par défaut est 'none'
-            $recurrence = $_POST['recurrence'] ?? 'none'; 
-            $event->setRecurrence($recurrence);
+            $event->setAlertTime($_POST['alertTime'] ?? null);
+            $event->setNotificationMessage($_POST['notificationMessage'] ?? 'Nouvel événement');
+            $event->setRecurrence($_POST['recurrence'] ?? 'none');
             
-            $participants = isset($_POST['participants']) ? $_POST['participants'] : [];
-            $event->setParticipants($participants);
-
-            // Calculer l'heure d'alerte (si alertTime est défini dans le formulaire)
-            $eventTimestamp = strtotime($_POST['date']);
-            $alertDelay = $_POST['alertTime']; // '1h', '30m', '15m'
-            
-            $delayInSeconds = match($alertDelay) {
-                '1h' => 3600,
-                '30m' => 1800,
-                '15m' => 900,
-                default => 0
-            };
-    
-            $alertTimestamp = $eventTimestamp - $delayInSeconds;
-            $alertTime = date('Y-m-d H:i:s', $alertTimestamp);
-            $event->setAlertTime($alertTime);
-    
-            // Créer l'événement avec récurrence ou unique
             $eventModel = new EventModel();
-            if ($recurrence !== 'none') {
-                $eventModel->createRecurringEvent($event); // Créer un événement récurrent
-            } else {
-                $eventModel->create($event); // Créer un événement unique
-
+            $eventId = $eventModel->create($event);
+            
+            if ($eventId) {
+                // Récupérer tous les seniors associés à ce familymember
+                $familyMemberId = $_SESSION['user_id'];
+                $seniorModel = new SeniorModel();
+                $seniors = $seniorModel->getSeniorsForFamilyMember($familyMemberId);
+                
+                $notifController = new NotificationController();
+                
+                // Envoyer une notification à chaque senior
+                foreach ($seniors as $senior) {
+                    $notifController->sendNotification(
+                        $senior['user_id'], 
+                        'event',
+                        'Nouvel événement : ' . $event->getTitle(), 
+                        $eventId,
+                        false
+                    );
+                }
+                
+                // Log pour le débogage
+                error_log("Notifications d'événement envoyées pour l'événement ID: $eventId");
+                
                 header('Location: index.php?controller=event&action=index');
                 exit;
             }
-
-// Créer une notification associée à l'événement
-$notifController = new NotificationController();
-$notifController->sendNotification($event->getUserId(), 'event', $event->getNotificationMessage(), $event->getId());
-
-            // Rediriger l'utilisateur après la création de l'événement
-            header('Location: index.php?controller=event&action=index');
-            exit;
-        } else {
-            // Affichage du formulaire d'ajout
-            $addForm = new Form();
-            $addForm->startForm('index.php?controller=event&action=add', 'POST')
-                    ->addLabel('title', 'Titre de l\'événement')
-                    ->addInput('text', 'title')
-                    ->addLabel('date', 'Date et heure')
-                    ->addInput('datetime-local', 'date')
-                    ->addLabel('description', 'Description')
-                    ->addTextarea('description')
-                    ->addLabel('lieu', 'Lieu')
-                    ->addInput('text', 'lieu')
-                    ->addLabel('recurrence', 'Fréquence de l\'événement')
-                    ->addSelect('recurrence', ['none' => 'Pas de récurrence', 'daily' => 'Quotidien', 'weekly' => 'Hebdomadaire', 'monthly' => 'Mensuel'])
-                    ->addLabel('alertTime', 'Temps avant alerte')
-                    ->addSelect('alertTime', ['1h' => '1 heure avant', '30m' => '30 minutes avant', '15m' => '15 minutes avant'])
-                    ->addLabel('notificationMessage', 'Message de notification personnalisé')
-                    ->addTextarea('notificationMessage')
-                    ->addInput('submit', 'create', ['value' => 'Créer l\'événement'])
-                    ->endForm();
-    
-            $this->render('events/add', [
-                'addForm' => $addForm
-            ]);
         }
+        
+        // Si nous arrivons ici, c'est que nous devons afficher le formulaire
+        // Affichage du formulaire d'ajout
+        $addForm = new Form();
+        $addForm->startForm('index.php?controller=event&action=add', 'POST')
+                ->addLabel('title', 'Titre de l\'événement')
+                ->addInput('text', 'title')
+                ->addLabel('date', 'Date et heure')
+                ->addInput('datetime-local', 'date')
+                ->addLabel('description', 'Description')
+                ->addTextarea('description')
+                ->addLabel('lieu', 'Lieu')
+                ->addInput('text', 'lieu')
+                ->addLabel('recurrence', 'Fréquence de l\'événement')
+                ->addSelect('recurrence', ['none' => 'Pas de récurrence', 'daily' => 'Quotidien', 'weekly' => 'Hebdomadaire', 'monthly' => 'Mensuel'])
+                ->addLabel('alertTime', 'Temps avant alerte')
+                ->addSelect('alertTime', ['1h' => '1 heure avant', '30m' => '30 minutes avant', '15m' => '15 minutes avant'])
+                ->addLabel('notificationMessage', 'Message de notification personnalisé')
+                ->addTextarea('notificationMessage')
+                ->addInput('submit', 'create', ['value' => 'Créer l\'événement'])
+                ->endForm();
+    
+        $this->render('events/add', [
+            'addForm' => $addForm
+        ]);
     }
+    
+    
     public function markEventAsRead() {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $eventId = $_POST['event_id'];

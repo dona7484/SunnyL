@@ -2,40 +2,103 @@
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../models/Message.php';
 require_once __DIR__ . '/../models/NotificationModel.php';
+require_once __DIR__ . '/NotificationController.php';
+require_once __DIR__ . '/../models/AudioMessage.php';
 
 class MessageController extends Controller {
     
     public function send() {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             try {
-                // Récupérer les données du formulaire
-                $senderId = $_SESSION['user_id'];
-                $receiverId = $_POST['receiver_id'];
-                $messageText = $_POST['message']; // IMPORTANT: Utilisez 'message' au lieu de 'content'
+                // Récupérer les données JSON
+                $data = json_decode(file_get_contents('php://input'), true);
                 
-                // Enregistrer le message dans la base de données
+                if ($data === null && json_last_error() !== JSON_ERROR_NONE) {
+                    // Essayer avec $_POST si ce n'est pas du JSON valide
+                    $senderId = $_SESSION['user_id'];
+                    $receiverId = $_POST['receiver_id'] ?? null;
+                    $messageText = $_POST['message'] ?? null;
+                } else {
+                    // Utiliser les données JSON
+                    $senderId = $_SESSION['user_id'];
+                    $receiverId = $data['receiver_id'] ?? null;
+                    $messageText = $data['message'] ?? null;
+                }
+                
+                if (!$receiverId || !$messageText) {
+                    throw new Exception("Données de message incomplètes");
+                }
+                
                 $result = Message::save($senderId, $receiverId, $messageText);
                 
                 if ($result) {
-                    // Envoyer une notification
-                    $notifModel = new NotificationModel();
-                    $notifModel->createNotification(
-                        $receiverId, 
-                        'message', 
-                        "Nouveau message de " . ($_SESSION['name'] ?? 'un contact')
+                    // Créer une notification
+                    $notificationController = new NotificationController();
+                    $notificationController->sendNotification(
+                        $receiverId,
+                        'message',
+                        'Nouveau message de ' . $_SESSION['name'],
+                        $senderId
                     );
                     
                     echo json_encode(['status' => 'success', 'message' => 'Message envoyé avec succès']);
                 } else {
-                    echo json_encode(['status' => 'error', 'message' => 'Échec de l\'enregistrement du message']);
+                    echo json_encode(['status' => 'error', 'message' => 'Échec de l\'envoi du message']);
                 }
             } catch (Exception $e) {
                 echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
             }
         } else {
-            $this->render('message/send');
+            // Code pour afficher le formulaire d'envoi de message
+            $familyMemberId = $_SESSION['user_id'];
+            $seniorModel = new SeniorModel();
+            $seniors = $seniorModel->getSeniorsForFamilyMember($familyMemberId);
+            
+            $this->render('message/send', [
+                'seniors' => $seniors
+            ]);
         }
     }
+    
+
+    public function sendAudio() {
+        header('Content-Type: application/json');
+        
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            try {
+                // Récupérer les données JSON
+                $data = json_decode(file_get_contents('php://input'), true);
+                
+                // Récupérer les données du formulaire
+                $senderId = $_SESSION['user_id'];
+                $receiverId = $data['receiver_id'];
+                $audioData = $data['audio_data'];
+                
+                // Enregistrer le message audio dans la base de données
+                $messageId = Message::saveAudio($senderId, $receiverId, $audioData);
+                
+                if ($messageId) {
+                    $notificationController = new NotificationController();
+                    $notificationController->sendNotification(
+                        $receiverId,
+                        'audio', // Assurez-vous que c'est bien 'audio' et non 'message'
+                        'Nouveau message audio de ' . $_SESSION['name'],
+                        $messageId
+                    );
+                    
+                    echo json_encode(['status' => 'success', 'message' => 'Message audio envoyé avec succès']);
+                } else {
+                    echo json_encode(['status' => 'error', 'message' => 'Échec de l\'enregistrement du message audio']);
+                }
+            } catch (Exception $e) {
+                echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
+            }
+        } else {
+            echo json_encode(['status' => 'error', 'message' => 'Méthode non autorisée']);
+        }
+    }
+    
+    
     
     public function markAsRead() {
         header('Content-Type: application/json');
@@ -83,23 +146,19 @@ class MessageController extends Controller {
     public function received() {
         $this->checkAuthentication();
         
+        // Récupérer les messages texte
         $messages = Message::getReceivedMessages($_SESSION['user_id']);
+        
+        // Récupérer les messages audio
+        $audioMessages = AudioMessage::getReceivedMessages($_SESSION['user_id']);
+        
         $this->render('message/received', [
             'messages' => $messages,
+            'audioMessages' => $audioMessages,
             'current_user' => $_SESSION['user_id']
         ]);
     }
-
-    private function sendToWebSocketServer($data) {
-        try {
-            $context = new ZMQContext();
-            $socket = $context->getSocket(ZMQ::SOCKET_PUSH);
-            $socket->connect("tcp://localhost:5555");
-            $socket->send(json_encode($data));
-        } catch (Exception $e) {
-            error_log("Erreur WebSocket: " . $e->getMessage());
-        }
-    }
+    
 
     private function checkAuthentication() {
         if (session_status() === PHP_SESSION_NONE) {

@@ -22,15 +22,24 @@ public function createNotification($userId, $type, $content, $eventId = null) {
         ':event_id' => $eventId // Utilisez event_id si disponible
     ]);
 }
-
-
-    // Récupérer toutes les notifications non lues d'un utilisateur
-    public function getUnreadNotifications($userId) {
-        $sql = "SELECT * FROM notifications WHERE user_id = :user_id AND is_read = 0 ORDER BY created_at DESC";
-        $stmt = $this->pdo->prepare($sql);
-        $stmt->execute([':user_id' => $userId]);
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+public function getUnreadNotifications($userId) {
+    $userRoleQuery = "SELECT role FROM users WHERE id = :user_id";
+    $stmtRole = $this->pdo->prepare($userRoleQuery);
+    $stmtRole->execute([':user_id' => $userId]);
+    $userRole = $stmtRole->fetchColumn();
+    
+    $sql = "SELECT * FROM notifications WHERE user_id = :user_id AND is_read = 0";
+    
+    if ($userRole === 'senior') {
+        $sql .= " AND (type != 'read_confirmation' AND is_confirmation = 0)";
     }
+    
+    $sql .= " ORDER BY created_at DESC";
+    
+    $stmt = $this->pdo->prepare($sql);
+    $stmt->execute([':user_id' => $userId]);
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
 
     // Marquer une notification comme lue
     public function markAsRead($notifId) {

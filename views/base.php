@@ -1,12 +1,10 @@
 <?php
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
-}// Au début de base.php
-echo "<pre>";
-print_r($_SESSION);
-echo "</pre>";
-
-echo "<pre>Session Role: " . ($_SESSION['role'] ?? 'non défini') . "</pre>";
+}
+if (!defined('VAPID_PUBLIC_KEY')) {
+  define('VAPID_PUBLIC_KEY', 'BFnoZsHNOnO5jG0XncDui6EyziGdamtD6rXxQ37tPGmsutyV2ZtRXtwedlaEMFqLG0dBD7AzPToapQmM0srRiJI');
+}
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -92,7 +90,103 @@ echo "<pre>Session Role: " . ($_SESSION['role'] ?? 'non défini') . "</pre>";
     </div>
 
     <!-- Scripts -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
-    integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
-</body>
-</html>
+    <script>
+// Fonction pour convertir la clé publique VAPID
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding)
+    .replace(/-/g, '+')
+    .replace(/_/g, '/');
+  
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+}
+
+
+if ('serviceWorker' in navigator && 'PushManager' in window) {
+    window.addEventListener('load', function() {
+        navigator.serviceWorker.register('/SunnyLink/service-worker.js')
+            .then(function(registration) {
+                console.log('Service Worker enregistré avec succès:', registration);
+            })
+            .catch(function(error) {
+                console.error('Erreur lors de l\'enregistrement du Service Worker:', error);
+            });
+    });
+}
+
+// activation des notifications
+// activation des notifications
+document.addEventListener('DOMContentLoaded', function() {
+  const enableNotificationsBtn = document.getElementById('enable-notifications');
+  if (enableNotificationsBtn) {
+    enableNotificationsBtn.addEventListener('click', function() {
+      if ('serviceWorker' in navigator && 'PushManager' in window) {
+        navigator.serviceWorker.ready
+          .then(function(registration) {
+            // Vérifier si une souscription existe déjà
+            return registration.pushManager.getSubscription()
+              .then(function(subscription) {
+                // Si une souscription existe, la désabonner d'abord
+                if (subscription) {
+                  return subscription.unsubscribe().then(function() {
+                    return registration; // Retourner l'enregistrement pour continuer
+                  });
+                }
+                return registration;
+              });
+          })
+          .then(function(registration) {
+            // Créer une nouvelle souscription avec la nouvelle clé
+            return registration.pushManager.subscribe({
+              userVisibleOnly: true,
+              applicationServerKey: urlBase64ToUint8Array('BFnoZsHNOnO5jG0XncDui6EyziGdamtD6rXxQ37tPGmsutyV2ZtRXtwedlaEMFqLG0dBD7AzPToapQmM0srRiJI')
+            });
+          })
+          .then(function(subscription) {
+            console.log("Abonnement réussi:", subscription);
+            
+            // Envoyer la souscription au serveur
+            return fetch('index.php?controller=notification&action=subscribe', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                subscription: subscription.toJSON(),
+                user_id: <?php echo isset($_SESSION['user_id']) ? $_SESSION['user_id'] : 'null'; ?>
+              }),
+            });
+          })
+          .then(function(response) {
+            return response.json();
+          })
+          .then(function(data) {
+            if (data.success) {
+              alert('Notifications activées avec succès !');
+            } else {
+              alert('Erreur lors de l\'activation des notifications: ' + (data.error || ''));
+            }
+          })
+          .catch(function(err) {
+            console.error('Erreur d\'abonnement:', err);
+            alert('Erreur lors de l\'abonnement aux notifications: ' + err.message);
+          });
+      } else {
+        alert('Votre navigateur ne supporte pas les notifications push.');
+      }
+    });
+  }
+});
+
+</script>
+
+<!-- bouton d'activation des notifications -->
+<div class="text-center mt-4 mb-4">
+  <button id="enable-notifications" class="btn btn-primary">Activer les notifications</button>
+</div>
