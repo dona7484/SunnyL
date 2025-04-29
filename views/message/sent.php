@@ -1,3 +1,4 @@
+<!-- Dans views/message/sent.php -->
 <?php
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -15,7 +16,7 @@ if (!isset($_SESSION['user_id'])) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Messages reçus - SunnyLink</title>
+    <title>Messages envoyés - SunnyLink</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
@@ -55,21 +56,21 @@ if (!isset($_SESSION['user_id'])) {
         }
         
         .message-header {
-            background-color: #FFD700;
-            color: #333;
+            background-color: #4a90e2;
+            color: white;
             padding: 15px;
             display: flex;
             align-items: center;
             justify-content: space-between;
         }
         
-        .sender-info {
+        .receiver-info {
             display: flex;
             align-items: center;
             gap: 10px;
         }
         
-        .sender-avatar {
+        .receiver-avatar {
             width: 40px;
             height: 40px;
             border-radius: 50%;
@@ -78,17 +79,17 @@ if (!isset($_SESSION['user_id'])) {
             align-items: center;
             justify-content: center;
             font-weight: bold;
-            color: #333;
+            color: #4a90e2;
         }
         
-        .sender-name {
+        .receiver-name {
             font-weight: bold;
             font-size: 1.1rem;
         }
         
         .message-date {
             font-size: 0.8rem;
-            color: #555;
+            color: rgba(255, 255, 255, 0.8);
             margin-top: 5px;
         }
         
@@ -107,24 +108,6 @@ if (!isset($_SESSION['user_id'])) {
             border-top: 1px solid #eee;
         }
         
-        .message-actions {
-            display: flex;
-            gap: 15px;
-        }
-        
-        .action-button {
-            background: none;
-            border: none;
-            color: #666;
-            cursor: pointer;
-            font-size: 1.1rem;
-            transition: color 0.2s ease;
-        }
-        
-        .action-button:hover {
-            color: #FFD700;
-        }
-        
         .message-status {
             position: absolute;
             top: 10px;
@@ -135,14 +118,14 @@ if (!isset($_SESSION['user_id'])) {
             font-weight: bold;
         }
         
-        .status-unread {
-            background-color: #FFD700;
-            color: #333;
+        .status-read {
+            background-color: #28a745;
+            color: white;
         }
         
-        .status-read {
-            background-color: #e0e0e0;
-            color: #666;
+        .status-unread {
+            background-color: #dc3545;
+            color: white;
         }
         
         .audio-message {
@@ -180,7 +163,7 @@ if (!isset($_SESSION['user_id'])) {
         
         .empty-state-icon {
             font-size: 4rem;
-            color: #FFD700;
+            color: #4a90e2;
             margin-bottom: 20px;
         }
         
@@ -189,43 +172,65 @@ if (!isset($_SESSION['user_id'])) {
             color: #666;
             margin-bottom: 30px;
         }
+        
+        .nav-tabs {
+            margin-bottom: 30px;
+            border-bottom: 2px solid #dee2e6;
+        }
+        
+        .nav-tabs .nav-link {
+            border: none;
+            color: #495057;
+            font-weight: 600;
+            padding: 10px 20px;
+            border-radius: 0;
+        }
+        
+        .nav-tabs .nav-link.active {
+            color: #4a90e2;
+            background-color: transparent;
+            border-bottom: 3px solid #4a90e2;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <a href="index.php?controller=home&action=dashboard" class="back-button">
+        <a href="index.php?controller=home&action=family_dashboard" class="back-button">
             <i class="fas fa-arrow-left"></i> Retour au tableau de bord
         </a>
         
         <h1 class="page-title">Mes Messages</h1>
+        
         <ul class="nav nav-tabs">
-    <li class="nav-item">
-        <a class="nav-link active" href="index.php?controller=message&action=received">Messages reçus</a>
-    </li>
-    <li class="nav-item">
-        <a class="nav-link" href="index.php?controller=message&action=sent">Messages envoyés</a>
-    </li>
-</ul>
+            <li class="nav-item">
+                <a class="nav-link" href="index.php?controller=message&action=received">Messages reçus</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link active" href="index.php?controller=message&action=sent">Messages envoyés</a>
+            </li>
+        </ul>
+        
         <?php if (empty($messages) && empty($audioMessages)): ?>
             <div class="empty-state">
                 <div class="empty-state-icon">
-                    <i class="fas fa-inbox"></i>
+                    <i class="fas fa-paper-plane"></i>
                 </div>
                 <div class="empty-state-text">
-                    Vous n'avez pas encore reçu de messages.
+                    Vous n'avez pas encore envoyé de messages.
                 </div>
+                <a href="index.php?controller=message&action=send" class="btn btn-primary">Envoyer un message</a>
             </div>
         <?php else: ?>
             <div class="message-container">
                 <?php foreach ($messages as $message): ?>
                     <div class="card message-card">
                         <div class="message-header">
-                            <div class="sender-info">
-                                <div class="sender-avatar">
-                                    <?= substr($message['sender_name'], 0, 1) ?>
+                            <div class="receiver-info">
+                                <div class="receiver-avatar">
+                                    <?= substr($message['receiver_name'], 0, 1) ?>
                                 </div>
                                 <div>
-                                    <div class="sender-name"><?= htmlspecialchars($message['sender_name']) ?></div>
+                                    <div class="receiver-name"><?= htmlspecialchars($message['receiver_name']) ?></div>
                                     <div class="message-date">
                                         <?= date('d/m/Y à H:i', strtotime($message['created_at'])) ?>
                                     </div>
@@ -243,12 +248,9 @@ if (!isset($_SESSION['user_id'])) {
                         
                         <div class="message-footer">
                             <div class="message-actions">
-                                <button class="action-button mark-read" data-id="<?= $message['id'] ?>" title="Marquer comme lu">
-                                    <i class="fas fa-check"></i>
-                                </button>
-                                <button class="action-button reply" data-id="<?= $message['id'] ?>" title="Répondre">
-                                    <i class="fas fa-reply"></i>
-                                </button>
+                                <a href="index.php?controller=message&action=send&reply_to=<?= $message['id'] ?>" class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-reply"></i> Répondre
+                                </a>
                             </div>
                         </div>
                     </div>
@@ -257,12 +259,12 @@ if (!isset($_SESSION['user_id'])) {
                 <?php foreach ($audioMessages as $audioMessage): ?>
                     <div class="card message-card audio-message">
                         <div class="message-header">
-                            <div class="sender-info">
-                                <div class="sender-avatar">
-                                    <?= substr($audioMessage['sender_name'], 0, 1) ?>
+                            <div class="receiver-info">
+                                <div class="receiver-avatar">
+                                    <?= substr($audioMessage['receiver_name'], 0, 1) ?>
                                 </div>
                                 <div>
-                                    <div class="sender-name"><?= htmlspecialchars($audioMessage['sender_name']) ?></div>
+                                    <div class="receiver-name"><?= htmlspecialchars($audioMessage['receiver_name']) ?></div>
                                     <div class="message-date">
                                         <?= date('d/m/Y à H:i', strtotime($audioMessage['created_at'])) ?>
                                     </div>
@@ -286,69 +288,21 @@ if (!isset($_SESSION['user_id'])) {
                         
                         <div class="message-footer">
                             <div class="message-actions">
-                                <button class="action-button mark-read" data-id="<?= $audioMessage['id'] ?>" title="Marquer comme lu">
-                                    <i class="fas fa-check"></i>
-                                </button>
-                                <button class="action-button reply-audio" data-id="<?= $audioMessage['id'] ?>" title="Répondre par audio">
-                                    <i class="fas fa-microphone"></i>
-                                </button>
+                                <a href="index.php?controller=message&action=send&audio=1&reply_to=<?= $audioMessage['id'] ?>" class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-microphone"></i> Répondre par audio
+                                </a>
                             </div>
                         </div>
                     </div>
                 <?php endforeach; ?>
             </div>
+            
+            <div class="text-center mt-4">
+                <a href="index.php?controller=message&action=send" class="btn btn-primary">Envoyer un nouveau message</a>
+            </div>
         <?php endif; ?>
     </div>
     
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        // Fonction pour marquer un message comme lu
-        document.querySelectorAll('.mark-read').forEach(button => {
-            button.addEventListener('click', function() {
-                const messageId = this.getAttribute('data-id');
-                
-                fetch('index.php?controller=message&action=markAsRead', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        message_id: messageId
-                    })
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        // Mettre à jour l'interface utilisateur
-                        const card = this.closest('.message-card');
-                        const statusBadge = card.querySelector('.message-status');
-                        
-                        statusBadge.classList.remove('status-unread');
-                        statusBadge.classList.add('status-read');
-                        statusBadge.textContent = 'Lu';
-                    }
-                })
-                .catch(error => {
-                    console.error('Erreur:', error);
-                });
-            });
-        });
-        
-        // Fonction pour répondre à un message
-        document.querySelectorAll('.reply').forEach(button => {
-            button.addEventListener('click', function() {
-                const messageId = this.getAttribute('data-id');
-                window.location.href = 'index.php?controller=message&action=send&reply_to=' + messageId;
-            });
-        });
-        
-        // Fonction pour répondre par audio
-        document.querySelectorAll('.reply-audio').forEach(button => {
-            button.addEventListener('click', function() {
-                const messageId = this.getAttribute('data-id');
-                window.location.href = 'index.php?controller=message&action=send&audio=1&reply_to=' + messageId;
-            });
-        });
-    </script>
 </body>
 </html>

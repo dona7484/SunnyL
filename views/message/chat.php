@@ -34,7 +34,10 @@ $title = "Messagerie Instantanée";
 
   <script>
     // Connexion au serveur WebSocket
-    const socket = new WebSocket("ws://localhost:8080");
+    // const socket = new WebSocket("ws://localhost:8081");
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+const host = window.location.hostname;
+const socket = new WebSocket(`${protocol}//${host}:8080/`);
 
     socket.addEventListener("open", () => {
       console.log("Connecté au serveur WebSocket.");

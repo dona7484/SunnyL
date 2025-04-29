@@ -2,7 +2,10 @@
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
-
+if (!isset($_SESSION['user_id'])) {
+  header('Location: index.php?controller=auth&action=login');
+  exit;
+}
 // Définir la clé VAPID publique pour les notifications push
 define('VAPID_PUBLIC_KEY', 'BFnoZsHNOnO5jG0XncDui6EyziGdamtD6rXxQ37tPGmsutyV2ZtRXtwedlaEMFqLG0dBD7AzPToapQmM0srRiJI');
 
@@ -53,7 +56,7 @@ $notifs = $notifModel->getUnreadNotifications($_SESSION['user_id'] ?? 0) ?? [];
     }
 
     .photoSunnylink {
-      width: 100%;
+      width: 80%;
       height: auto;
     }
 
@@ -67,33 +70,44 @@ $notifs = $notifModel->getUnreadNotifications($_SESSION['user_id'] ?? 0) ?? [];
     }
 
     .menuItem {
-      width: 140px;
-      height: 140px;
-      border-radius: 15px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      text-align: center;
-      box-shadow: 0px 4px 6px rgba(0,0,0,0.1);
-      transition: transform 0.2s;
-    }
+  width: 140px;
+  height: 140px;
+  border-radius: 15px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  box-shadow: 0px 4px 6px rgba(0,0,0,0.1);
+  transition: transform 0.2s;
+  position: relative;
+  cursor: pointer;
+}
 
-    .menuItem img {
-      width: 60px;
-    }
+.menuItem img {
+  width: 60px;
+  height: 60px;
+}
 
-    .menuItem span {
-      margin-top: .5rem;
-    }
-
+.menuItem span {
+  margin-top: .5rem;
+  font-size: 1.1rem;
+}
     .Photos { background-color: #87CEEB; }
     .musique { background-color: #FFD700; }
     .Messages { background-color: #FFB6C1; }
     .appels { background-color: #ADD8E6; }
     .agenda { background-color: #DDA0DD; }
     .rappels { background-color: #98FB98; }
-    
+    .menuItem.notifications {
+  background-color: #baffb3;
+}
+.menuItem.historique {
+  background-color: #e0e0e0;
+}
+.menuItem.musique {
+  background-color: #FFD700;
+}
     .menuItem:hover {
       transform: scale(1.05);
     }
@@ -246,7 +260,24 @@ $notifs = $notifModel->getUnreadNotifications($_SESSION['user_id'] ?? 0) ?? [];
         flex-direction: column;
         gap: 10px;
     }
-    
+    .notif-badge {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: #FF4754;
+  color: white;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  font-size: 1rem;
+  font-weight: bold;
+  z-index: 1;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+}
     @media (min-width: 768px) {
         .audio-recorder-senior {
             flex-direction: row;
@@ -276,19 +307,15 @@ $notifs = $notifModel->getUnreadNotifications($_SESSION['user_id'] ?? 0) ?? [];
         <span>Photos</span>
       </div>
 
-      <div class="menuItem musique" onclick="openSpotify()">
-        <img src="images/iconeMusic.png" alt="Musique">
-        <span>Musique</span>
-      </div>
+      <div class="menuItem musique" onclick="window.location.href='index.php?controller=spotify&action=player'">
+    <img src="images/iconeMusic.png" alt="Musique">
+    <span>Musique</span>
+</div>
+
 
       <div class="menuItem Messages" onclick="openMessages()">
         <img src="images/iconeMessage.png" alt="Messages">
         <span>Messages</span>
-      </div>
-
-      <div class="menuItem appels" onclick="openCalls()">
-        <img src="images/IconeTel.jpg" alt="Appels">
-        <span>Appels</span>
       </div>
 
       <div class="menuItem agenda" onclick="openAgenda()">
@@ -296,12 +323,34 @@ $notifs = $notifModel->getUnreadNotifications($_SESSION['user_id'] ?? 0) ?? [];
         <span>Agenda</span>
       </div>
 
-      <div class="menuItem rappels" onclick="openReminders()">
-        <img src="images/IconeRappel.png" alt="Rappels">
-        <span>Rappels</span>
-      </div>
-    </div>
-  </div>
+      <div class="menuItem notifications" onclick="openReminders()">
+    <img src="images/IconeRappel.png" alt="Notifications" />
+    <span>Notifications non lues</span>
+    <?php if (!empty($notifications)): ?>
+        <span class="notif-badge"><?= count($notifications) ?></span>
+    <?php endif; ?>
+</div>
+
+<div class="menuItem historique" onclick="window.location.href='index.php?controller=notification&action=history'">
+    <img src="images/history-icon.png" alt="Historique" />
+    <span>Historique</span>
+</div>
+
+<div class="dashboard-section">
+    <h4>🔔 Notifications non lues</h4>
+    <?php if (!empty($notifications)): ?>
+        <ul>
+            <?php foreach ($notifications as $notif): ?>
+                <li>
+                    <?= htmlspecialchars($notif['content']) ?>
+                    <small class="text-muted"><?= date('d/m/Y H:i', strtotime($notif['created_at'])) ?></small>
+                </li>
+            <?php endforeach; ?>
+        </ul>
+    <?php else: ?>
+        <p>Aucune notification non lue</p>
+    <?php endif; ?>
+</div>
 
   <!-- Bulle de notification améliorée -->
   <div id="notif-bubble" class="notif-bubble" style="display:none;">
@@ -333,96 +382,175 @@ $notifs = $notifModel->getUnreadNotifications($_SESSION['user_id'] ?? 0) ?? [];
     <source src="audio/notif-sound.mp3" type="audio/mpeg">
   </audio>
 
-  <script src="/SunnyLink/js/notifications.js"></script>
+  <script src="js/websocket.js"></script>
+<script src="js/notifications.js"></script>
+<script src="/SunnyLink/public/js/global-notifications.js"></script>
+<script src="/SunnyLink/public/js/main.js"></script>
+<script src="/SunnyLink/public/js/websocket.js"></script>
 
-  <script>
-  // Fonctions de navigation (à conserver dans dashboard.php)
-  function openPhotos() {
-    window.location.href = 'index.php?controller=photo&action=gallery';
-  }
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Activer le son au premier clic sur la page
+        document.body.addEventListener('click', function activateSound() {
+            const audio = document.getElementById('notification-sound');
+            audio.volume = 0.1; // Volume très bas pour ne pas déranger
+            audio.play().then(() => {
+                console.log("Audio activé avec succès");
+                document.body.removeEventListener('click', activateSound);
+            }).catch(e => {
+                console.warn("Activation du son échouée :", e);
+            });
+        }, { once: true });
 
-  function openSpotify() {
-    window.open('https://open.spotify.com', '_blank');
-  }
+        // Enregistrement du service worker
+        if ('serviceWorker' in navigator && 'PushManager' in window) {
+            navigator.serviceWorker.register('/SunnyLink/service-worker.js')
+                .then(function(registration) {
+                    console.log('Service Worker enregistré avec succès');
+                })
+                .catch(function(error) {
+                    console.error('Erreur lors de l\'enregistrement du Service Worker:', error);
+                });
+        }
 
-  function openMessages() {
-    window.location.href = 'index.php?controller=message&action=received';
-  }
+        // ID utilisateur pour WebSocket
+        const userId = <?= $_SESSION['user_id'] ?>;
+        console.log('ID utilisateur pour WebSocket:', userId);
+        
+        // Connexion WebSocket
+        if (typeof sunnyLinkWS !== 'undefined') {
+            sunnyLinkWS.connect(userId);
+            
+            // Gérer les messages reçus via WebSocket
+            sunnyLinkWS.onMessage(function(data) {
+                console.log('Message WebSocket reçu:', data);
+                
+                // Afficher une notification pour le nouveau message
+                if (data.type === 'message' || data.type === 'audio') {
+                    showNotification(data.type, data.content || 'Nouveau message');
+                    
+                    // Jouer le son de notification
+                    playNotificationSound();
+                }
+            });
+        }
 
-  function openCalls() {
-    alert("La fonctionnalité d'appels n'est pas encore disponible.");
-  }
-
-  function openAgenda() {
-    window.location.href = 'index.php?controller=event&action=index';
-  }
-
-  function openReminders() {
-    window.location.href = 'index.php?controller=notification&action=index';
-  }
-  
-  function toggleVolume() {
-    alert("Fonctionnalité de volume en cours de développement");
-  }
-
-  // Initialisation spécifique au dashboard
-  document.addEventListener('DOMContentLoaded', function() {
-    // Activer le son au premier clic sur la page
-    document.body.addEventListener('click', function activateSound() {
-      const audio = document.getElementById('notification-sound');
-      audio.volume = 0.1; // Volume très bas pour ne pas déranger
-      audio.play().then(() => {
-        console.log("Audio activé avec succès");
-        document.body.removeEventListener('click', activateSound);
-      }).catch(e => {
-        console.warn("Activation du son échouée :", e);
-      });
-    }, { once: true });
-
-    // Enregistrement du service worker
-    if ('serviceWorker' in navigator && 'PushManager' in window) {
-      navigator.serviceWorker.register('/SunnyLink/service-worker.js')
-        .then(function(registration) {
-          console.log('Service Worker enregistré avec succès');
-        })
-        .catch(function(error) {
-          console.error('Erreur lors de l\'enregistrement du Service Worker:', error);
-        });
-    }
-
-    // Initialiser les notifications
-    if (window.location.search.includes('notifications=enabled') || localStorage.getItem('notificationsEnabled') === 'true') {
-    localStorage.setItem('notificationsEnabled', 'true');
-    initNotifications();
-  }
-    
-    // Afficher la bulle si des notifications existent au chargement
-    const bubble = document.getElementById("notif-bubble");
-    if (bubble && <?= count($notifs) > 0 ? 'true' : 'false' ?>) {
-      bubble.style.display = "flex";
-    }
-  });
-
-
-
-document.addEventListener('DOMContentLoaded', function() {
-  const markAsReadBtn = document.getElementById('mark-as-read-button');
-  if (markAsReadBtn) {
-    markAsReadBtn.addEventListener('click', function() {
-      const notifId = this.dataset.notifId;
-      const type = this.dataset.type;
-      const relatedId = this.dataset.relatedId;
-      
-      console.log("Clic sur notification - Données:", {notifId, type, relatedId});
-      
-      if (notifId) {
-        markNotificationAsRead(notifId, type, relatedId);
-      }
+        // Initialiser les notifications
+        if (typeof initNotifications === 'function') {
+            initNotifications();
+            console.log("Notifications initialisées avec succès");
+        } else {
+            console.error("La fonction initNotifications n'est pas définie. Vérifiez que le fichier notifications.js est correctement chargé.");
+        }
+        
+        // Afficher la bulle si des notifications existent au chargement
+        const bubble = document.getElementById("notif-bubble");
+        if (bubble && <?= count($notifs) > 0 ? 'true' : 'false' ?>) {
+            bubble.style.display = "flex";
+        }
+        
+        // Gestion du bouton de lecture des notifications
+        const markAsReadBtn = document.getElementById('mark-as-read-button');
+        if (markAsReadBtn) {
+            markAsReadBtn.addEventListener('click', function() {
+                const notifId = this.dataset.notifId;
+                const type = this.dataset.type;
+                const relatedId = this.dataset.relatedId;
+                
+                console.log("Clic sur notification - Données:", {notifId, type, relatedId});
+                
+                if (notifId) {
+                    markNotificationAsRead(notifId, type, relatedId);
+                }
+            });
+        }
+        
+        // Fonction pour afficher une notification
+        function showNotification(type, message) {
+            const bubble = document.getElementById('notif-bubble');
+            const bubbleText = document.getElementById('notif-bubble-text');
+            const markAsReadBtn = document.getElementById('mark-as-read-button');
+            
+            if (bubble && bubbleText) {
+                bubbleText.textContent = message;
+                
+                // Mettre à jour l'icône en fonction du type
+                const bubbleIcon = bubble.querySelector('.notif-bubble-icon');
+                if (bubbleIcon) {
+                    if (type === 'message') {
+                        bubbleIcon.src = 'images/iconeMessage.png';
+                    } else if (type === 'audio') {
+                        bubbleIcon.src = 'images/iconeMusic.png';
+                    } else if (type === 'photo') {
+                        bubbleIcon.src = 'images/IconePhoto.png';
+                    } else {
+                        bubbleIcon.src = 'images/IconeRappel.png';
+                    }
+                }
+                
+                // Mettre à jour le type de notification
+                const typeLabel = bubble.querySelector('.notif-type-label');
+                if (typeLabel) {
+                    if (type === 'message') {
+                        typeLabel.textContent = 'Nouveau message';
+                    } else if (type === 'audio') {
+                        typeLabel.textContent = 'Nouveau message audio';
+                    } else if (type === 'photo') {
+                        typeLabel.textContent = 'Nouvelle photo';
+                    } else {
+                        typeLabel.textContent = 'Nouvelle notification';
+                    }
+                }
+                
+                // Afficher la bulle
+                bubble.style.display = 'flex';
+                
+                // Mettre à jour le timestamp
+                const timestamp = bubble.querySelector('.notif-timestamp');
+                if (timestamp) {
+                    timestamp.textContent = 'À l\'instant';
+                }
+            }
+        }
+        
+        // Fonction pour jouer le son de notification
+        function playNotificationSound() {
+            const audio = document.getElementById('notification-sound');
+            if (audio) {
+                audio.volume = 0.5; // Volume à 50%
+                audio.play().catch(e => {
+                    console.warn("Impossible de jouer le son de notification:", e);
+                });
+            }
+        }
     });
-  }
-});
 
-  
+    // Fonctions de navigation
+    function openPhotos() {
+        window.location.href = 'index.php?controller=photo&action=gallery';
+    }
+
+    function openSpotify() {
+        window.open('https://open.spotify.com', '_blank');
+    }
+
+    function openMessages() {
+        window.location.href = 'index.php?controller=message&action=received';
+    }
+
+
+    function openAgenda() {
+        window.location.href = 'index.php?controller=event&action=index';
+    }
+
+    function openReminders() {
+        window.location.href = 'index.php?controller=notification&action=index';
+    }
+    
+    function toggleVolume() {
+        alert("Fonctionnalité de volume en cours de développement");
+    }
 </script>
+
 </body>
 </html>

@@ -1,0 +1,21 @@
+<IfModule mod_mime.c>
+    # Définir les types MIME corrects
+    AddType application/javascript .js
+    AddType application/json .json
+    AddType text/css .css
+</IfModule>
+
+<IfModule mod_headers.c>
+    <FilesMatch "service-worker\.js$">
+        Header set Content-Type "application/javascript"
+        Header set Service-Worker-Allowed "/"
+    </FilesMatch>
+</IfModule>
+# Ne pas rediriger les fichiers et dossiers existants
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# Sinon, tout le reste va vers index.php
+RewriteRule . /sunnylink/index.php [L]
+

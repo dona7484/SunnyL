@@ -179,8 +179,8 @@ $server = IoServer::factory(
             new SunnyLinkMessageServer()
         )
     ),
-    8080
+    8081
 );
 
-echo "Serveur WebSocket SunnyLink démarré sur ws://localhost:8080\n";
+echo "Serveur WebSocket SunnyLink démarré sur ws://localhost:8081\n";
 $server->run();

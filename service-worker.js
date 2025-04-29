@@ -1,71 +1,62 @@
-self.addEventListener('push', function(event) {
-    const data = event.data.json();
-    
-    const options = {
-        body: data.body,
-        icon: data.icon || '/assets/images/logo.png',
-        image: data.image,
-        badge: '/assets/images/badge.png',
-        vibrate: [100, 50, 100],
-        data: {
-            url: data.url,
-            type: data.type,
-            id: data.id
-        },
-        actions: [
-            {
-                action: 'check',
-                title: 'Consulter',
-                icon: '/assets/images/check.png'
-            }
-        ]
-    };
-    
-    event.waitUntil(
-        self.registration.showNotification(data.title, options)
-    );
+// service-worker.js
+const CACHE_NAME = 'sunnylink-cache-v1';
+const urlsToCache = [
+  '/',
+  '/index.php',
+  '/css/style.css',
+  '/js/main.js',
+  '/images/IconePhoto.png',
+  '/images/iconeMusic.png',
+  '/images/iconeMessage.png',
+  '/images/IconeRappel.png',
+  '/images/IconeSourdine.png',
+  '/images/check-button.png',
+  '/audio/notif-sound.mp3'
+];
+
+self.addEventListener('install', event => {
+  event.waitUntil(
+    caches.open(CACHE_NAME)
+      .then(cache => {
+        return cache.addAll(urlsToCache);
+      })
+  );
 });
-// Dans service-worker.js (si vous l'avez)
-self.addEventListener('notificationclick', function(event) {
-    const notification = event.notification;
-    const data = notification.data;
-    
-    let url = '/SunnyLink/public/index.php?controller=home&action=dashboard';
-    
-    if (data && data.type) {
-      if (data.type === 'message' || data.type === 'audio') {
-        url = '/SunnyLink/public/index.php?controller=message&action=received';
-      } else if (data.type === 'photo') {
-        url = '/SunnyLink/public/index.php?controller=photo&action=gallery';
-      } else if (data.type === 'event') {
-        url = '/SunnyLink/public/index.php?controller=event&action=index';
-      }
+
+self.addEventListener('fetch', event => {
+  event.respondWith(
+    caches.match(event.request)
+      .then(response => {
+        if (response) {
+          return response;
+        }
+        return fetch(event.request);
+      })
+  );
+});
+
+self.addEventListener('push', event => {
+  const data = event.data.json();
+  const options = {
+    body: data.body,
+    icon: '/images/IconeRappel.png',
+    badge: '/images/IconeRappel.png',
+    data: {
+      url: data.url || '/'
     }
-    
-    event.waitUntil(clients.openWindow(url));
-    notification.close();
-  });
+  };
+
+  event.waitUntil(
+    self.registration.showNotification(data.title, options)
+  );
+});
+
+self.addEventListener('notificationclick', event => {
+  event.notification.close();
   
-self.addEventListener('notificationclick', function(event) {
-    event.notification.close();
-    
-    if (event.action === 'check') {
-        // Marquer comme lu et rediriger
-        const markAsReadPromise = fetch('/index.php?controller=notification&action=markAsRead&id=' + event.notification.data.id, {
-            method: 'POST',
-            credentials: 'include'
-        });
-        
-        event.waitUntil(
-            Promise.all([
-                markAsReadPromise,
-                clients.openWindow(event.notification.data.url)
-            ])
-        );
-    } else {
-        // Comportement par défaut si on clique ailleurs sur la notification
-        event.waitUntil(
-            clients.openWindow(event.notification.data.url)
-        );
-    }
+  if (event.notification.data && event.notification.data.url) {
+    event.waitUntil(
+      clients.openWindow(event.notification.data.url)
+    );
+  }
 });

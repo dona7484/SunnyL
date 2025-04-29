@@ -51,8 +51,15 @@ $participants = isset($participants) ? $participants : [];
         <p>Alerte avant : <?php echo $alertTime ? $alertTime : 'Pas d\'alerte définie'; ?></p>
         <p>Message de notification : <?php echo $notificationMessage ? $notificationMessage : 'Aucun message personnalisé'; ?></p>
         <p><strong>Statut :</strong> 
-    <?= $events->isTriggered() ? 'Alerté' : 'Non alerté' ?>
+    <?php if ($events->isRead()): ?>
+        <span class="badge bg-success">Lu</span>
+    <?php elseif ($events->isTriggered()): ?>
+        <span class="badge bg-warning">Alerté</span>
+    <?php else: ?>
+        <span class="badge bg-warning">Non alerté</span>
+    <?php endif; ?>
 </p>
+
 
     </div>
 

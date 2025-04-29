@@ -73,7 +73,13 @@ $title = "Liste des Événements";
                         </td>
                         <td>
     <?= htmlspecialchars($event->getTitle(), ENT_QUOTES) ?>
-    <?= ($event->isTriggered() ? '<span class="badge bg-success">Alerté</span>' : '<span class="badge bg-warning">Non alerté</span>') ?>
+    <?php if ($event->isRead()): ?>
+        <span class="badge bg-success">Lu</span>
+    <?php elseif ($event->isTriggered()): ?>
+        <span class="badge bg-warning">Alerté</span>
+    <?php else: ?>
+        <span class="badge bg-warning">Non alerté</span>
+    <?php endif; ?>
 </td>
 
 

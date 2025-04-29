@@ -98,11 +98,13 @@ $notif = Notification::getById($notifId);
             <?= htmlspecialchars($notif['content']) ?>
         </div>
         <form method="POST" action="index.php?controller=notification&action=markNotificationAsRead">
-            <input type="hidden" name="notif_id" value="<?= $notif['id'] ?>">
-            <button type="submit" style="border:none;background:none;">
-                <img src="images/check-button.png" class="notif-validate" alt="Valider">
-            </button>
-        </form>
+    <input type="hidden" name="notif_id" value="<?= $notif['id'] ?>">
+    <input type="hidden" name="event_id" value="<?= $notif['related_id'] ?>">
+    <button type="submit" style="border:none;background:none;">
+        <img src="images/check-button.png" class="notif-validate" alt="Valider">
+    </button>
+</form>
+
     <?php else: ?>
         <div class="notif-message">
             Aucune nouvelle notification.
