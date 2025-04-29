@@ -70,44 +70,33 @@ $notifs = $notifModel->getUnreadNotifications($_SESSION['user_id'] ?? 0) ?? [];
     }
 
     .menuItem {
-  width: 140px;
-  height: 140px;
-  border-radius: 15px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  box-shadow: 0px 4px 6px rgba(0,0,0,0.1);
-  transition: transform 0.2s;
-  position: relative;
-  cursor: pointer;
-}
+      width: 140px;
+      height: 140px;
+      border-radius: 15px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      box-shadow: 0px 4px 6px rgba(0,0,0,0.1);
+      transition: transform 0.2s;
+    }
 
-.menuItem img {
-  width: 60px;
-  height: 60px;
-}
+    .menuItem img {
+      width: 60px;
+    }
 
-.menuItem span {
-  margin-top: .5rem;
-  font-size: 1.1rem;
-}
+    .menuItem span {
+      margin-top: .5rem;
+    }
+
     .Photos { background-color: #87CEEB; }
     .musique { background-color: #FFD700; }
     .Messages { background-color: #FFB6C1; }
     .appels { background-color: #ADD8E6; }
     .agenda { background-color: #DDA0DD; }
     .rappels { background-color: #98FB98; }
-    .menuItem.notifications {
-  background-color: #baffb3;
-}
-.menuItem.historique {
-  background-color: #e0e0e0;
-}
-.menuItem.musique {
-  background-color: #FFD700;
-}
+    
     .menuItem:hover {
       transform: scale(1.05);
     }
@@ -260,24 +249,7 @@ $notifs = $notifModel->getUnreadNotifications($_SESSION['user_id'] ?? 0) ?? [];
         flex-direction: column;
         gap: 10px;
     }
-    .notif-badge {
-  position: absolute;
-  top: 16px;
-  right: 16px;
-  background: #FF4754;
-  color: white;
-  width: 28px;
-  height: 28px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 2px solid #fff;
-  border-radius: 50%;
-  font-size: 1rem;
-  font-weight: bold;
-  z-index: 1;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.15);
-}
+    
     @media (min-width: 768px) {
         .audio-recorder-senior {
             flex-direction: row;
@@ -307,50 +279,34 @@ $notifs = $notifModel->getUnreadNotifications($_SESSION['user_id'] ?? 0) ?? [];
         <span>Photos</span>
       </div>
 
-      <div class="menuItem musique" onclick="window.location.href='index.php?controller=spotify&action=player'">
-    <img src="images/iconeMusic.png" alt="Musique">
-    <span>Musique</span>
-</div>
-
+      <div class="dashboard-item" onclick="window.location.href='index.php?controller=spotify&action=player'" class="dashboard-link">
+        <img src="images/iconeMusic.png" alt="Musique">
+        <i class="fas fa-music"></i>
+        <span>Musique</span>
+      </div>
 
       <div class="menuItem Messages" onclick="openMessages()">
         <img src="images/iconeMessage.png" alt="Messages">
         <span>Messages</span>
       </div>
 
+      <div class="menuItem appels" onclick="window.location.href='index.php?controller=call&action=start'">
+  <img src="images/IconeTel.jpg" alt="Appels">
+  <span>Appels vidéo</span>
+</div>
+
+
       <div class="menuItem agenda" onclick="openAgenda()">
         <img src="images/iconeAgenda.png" alt="Agenda">
         <span>Agenda</span>
       </div>
 
-      <div class="menuItem notifications" onclick="openReminders()">
-    <img src="images/IconeRappel.png" alt="Notifications" />
-    <span>Notifications non lues</span>
-    <?php if (!empty($notifications)): ?>
-        <span class="notif-badge"><?= count($notifications) ?></span>
-    <?php endif; ?>
-</div>
-
-<div class="menuItem historique" onclick="window.location.href='index.php?controller=notification&action=history'">
-    <img src="images/history-icon.png" alt="Historique" />
-    <span>Historique</span>
-</div>
-
-<div class="dashboard-section">
-    <h4>🔔 Notifications non lues</h4>
-    <?php if (!empty($notifications)): ?>
-        <ul>
-            <?php foreach ($notifications as $notif): ?>
-                <li>
-                    <?= htmlspecialchars($notif['content']) ?>
-                    <small class="text-muted"><?= date('d/m/Y H:i', strtotime($notif['created_at'])) ?></small>
-                </li>
-            <?php endforeach; ?>
-        </ul>
-    <?php else: ?>
-        <p>Aucune notification non lue</p>
-    <?php endif; ?>
-</div>
+      <div class="menuItem rappels" onclick="openReminders()">
+        <img src="images/IconeRappel.png" alt="Rappels">
+        <span>Rappels</span>
+      </div>
+    </div>
+  </div>
 
   <!-- Bulle de notification améliorée -->
   <div id="notif-bubble" class="notif-bubble" style="display:none;">
@@ -382,6 +338,7 @@ $notifs = $notifModel->getUnreadNotifications($_SESSION['user_id'] ?? 0) ?? [];
     <source src="audio/notif-sound.mp3" type="audio/mpeg">
   </audio>
 
+  <script src="js/websocket.js"></script>
 <script src="js/notifications.js"></script>
 <script src="/SunnyLink/public/js/global-notifications.js"></script>
 <script src="/SunnyLink/public/js/main.js"></script>
@@ -537,6 +494,9 @@ $notifs = $notifModel->getUnreadNotifications($_SESSION['user_id'] ?? 0) ?? [];
         window.location.href = 'index.php?controller=message&action=received';
     }
 
+    function openCalls() {
+    window.location.href = 'index.php?controller=call&action=start';
+}
 
     function openAgenda() {
         window.location.href = 'index.php?controller=event&action=index';

@@ -74,7 +74,17 @@ public static function getSentMessages($userId) {
             return false;
         }
     }
-    
+    public static function delete($id) {
+        $db = (new DbConnect())->getConnection();
+        $stmt = $db->prepare("DELETE FROM messages WHERE id = ?");
+        $stmt->execute([$id]);
+    }
+    public static function getById($id) {
+        $db = (new DbConnect())->getConnection();
+        $stmt = $db->prepare("SELECT * FROM messages WHERE id = ?");
+        $stmt->execute([$id]);
+        return $stmt->fetch(PDO::FETCH_OBJ);
+    }
     // Méthode pour récupérer les messages reçus par un utilisateur
     public static function getReceivedMessages($userId) {
         $dbConnect = new DbConnect();

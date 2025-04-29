@@ -8,9 +8,10 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="/SunnyLink/public/css/styles.css">
     <link rel="stylesheet" href="/SunnyLink/public/css/notifications.css">
-
-<!-- Précharger les sons -->
-<link rel="preload" href="/SunnyLink/public/audio/notif-sound.mp3" as="audio" crossorigin>    
+    
+    <!-- Précharger les sons -->
+    <link rel="preload" href="/SunnyLink/public/audio/notif-sound.mp3" as="audio">
+    
     <!-- Méta-informations pour PWA -->
     <meta name="theme-color" content="#FFD700">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -20,7 +21,7 @@
 <body <?= isset($_SESSION['user_id']) ? 'data-user-id="'.$_SESSION['user_id'].'" data-user-role="'.(isset($_SESSION['role']) ? $_SESSION['role'] : 'unknown').'"' : '' ?>>
     <?php if (isset($_SESSION['user_id']) && isset($_SESSION['role'])): ?>
     <?php if ($_SESSION['role'] === 'senior'): ?>
-    
+  
     <?php elseif ($_SESSION['role'] === 'familymember'): ?>
     <!-- Barre de navigation pour les membres de la famille avec les badges de notification -->
     <div class="family-navbar">
@@ -158,7 +159,7 @@
         }
         
         /* Styles de navigation communs */
-        .senior-navbar, .family-navbar {
+        .family-navbar {
             position: fixed;
             bottom: 0;
             left: 0;
@@ -171,7 +172,7 @@
             z-index: 1000;
         }
         
-        .senior-nav-item, .family-nav-item {
+        .family-nav-item {
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -181,31 +182,16 @@
             border-radius: 10px;
             position: relative;
         }
+   
         
-        .senior-nav-item:hover, .senior-nav-item:active,
-        .family-nav-item:hover, .family-nav-item:active {
-            background-color: #f0f0f0;
-            color: #333;
-        }
-        
-        .senior-nav-item i, .family-nav-item i {
-            font-size: 24px;
-            margin-bottom: 5px;
-        }
-        
+  
         /* Style spécifique pour les seniors (plus grand) */
         <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'senior'): ?>
         html {
             font-size: 110%; /* Police plus grande pour les seniors */
         }
         
-        .senior-nav-item i {
-            font-size: 28px; /* Icônes plus grandes pour les seniors */
-        }
-        
-        .senior-nav-item {
-            padding: 10px 20px; /* Plus d'espace pour les seniors */
-        }
+     
         <?php endif; ?>
         
         /* Style spécifique pour les family members */

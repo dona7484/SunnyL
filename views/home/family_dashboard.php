@@ -137,7 +137,10 @@ $activities = Activity::getRecentActivities($userId, 5);
                                            class="btn btn-sm btn-outline-primary">
                                             <i class="fas fa-comment"></i>
                                         </a>
-                                
+                                        <a href="index.php?controller=call&action=call&id=<?= $senior['user_id'] ?>" 
+                                           class="btn btn-sm btn-outline-success">
+                                            <i class="fas fa-video"></i>
+                                        </a>
                                     </div>
                                 </div>
                             <?php endforeach; ?>
@@ -221,6 +224,17 @@ $activities = Activity::getRecentActivities($userId, 5);
                                     <div class="card-body">
                                         <i class="fas fa-image fa-3x mb-3 text-success"></i>
                                         <h5>Partager une photo</h5>
+                                    </div>
+                                </div>
+                            </a>
+                        </div>
+                        
+                        <div class="col-md-4 mb-3">
+                            <a href="index.php?controller=call&action=start" class="quick-action-card">
+                                <div class="card h-100 text-center p-3">
+                                    <div class="card-body">
+                                        <i class="fas fa-video fa-3x mb-3 text-info"></i>
+                                        <h5>Appel vidéo</h5>
                                     </div>
                                 </div>
                             </a>

@@ -2,15 +2,24 @@
 document.addEventListener('DOMContentLoaded', function() {
     // Enregistrement du Service Worker
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sunnylink/service-worker.js', {scope: '/sunnylink/'})
+      navigator.serviceWorker.register('/SunnyLink/service-worker.js')
         .then(registration => {
           console.log('Service Worker enregistré avec succès:', registration);
+          
+          // Demander la permission pour les notifications
+          if ('Notification' in window) {
+            Notification.requestPermission().then(permission => {
+              if (permission === 'granted') {
+                console.log('Permission de notification accordée');
+                subscribeUserToPush();
+              }
+            });
+          }
         })
         .catch(error => {
           console.error('Erreur lors de l\'enregistrement du Service Worker:', error);
         });
     }
-    
     
     // Fonction pour s'abonner aux notifications push
     function subscribeUserToPush() {

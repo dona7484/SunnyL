@@ -1,18 +1,19 @@
 // service-worker.js
 const CACHE_NAME = 'sunnylink-cache-v1';
 const urlsToCache = [
-  '/',
-  '/index.php',
-  '/css/style.css',
-  '/js/main.js',
-  '/images/IconePhoto.png',
-  '/images/iconeMusic.png',
-  '/images/iconeMessage.png',
-  '/images/IconeRappel.png',
-  '/images/IconeSourdine.png',
-  '/images/check-button.png',
-  '/audio/notif-sound.mp3'
+  '/sunnylink/',
+  '/sunnylink/index.php',
+  '/sunnylink/css/style.css',
+  '/sunnylink/js/main.js',
+  '/sunnylink/images/IconePhoto.png',
+  '/sunnylink/images/iconeMusic.png',
+  '/sunnylink/images/iconeMessage.png',
+  '/sunnylink/images/IconeRappel.png',
+  '/sunnylink/images/IconeSourdine.png',
+  '/sunnylink/images/check-button.png',
+  '/sunnylink/audio/notif-sound.mp3'
 ];
+
 
 self.addEventListener('install', event => {
   event.waitUntil(

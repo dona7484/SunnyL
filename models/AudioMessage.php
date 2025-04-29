@@ -18,7 +18,17 @@ class AudioMessage {
             return false;
         }
     }
-    
+    public static function delete($id) {
+        $db = (new DbConnect())->getConnection();
+        $stmt = $db->prepare("DELETE FROM audio_messages WHERE id = ?");
+        $stmt->execute([$id]);
+    }
+    public static function getById($id) {
+        $db = (new DbConnect())->getConnection();
+        $stmt = $db->prepare("SELECT * FROM audio_messages WHERE id = ?");
+        $stmt->execute([$id]);
+        return $stmt->fetch(PDO::FETCH_OBJ);
+    }
     // Récupérer les messages audio reçus par un utilisateur
     public static function getReceivedMessages($userId) {
         try {

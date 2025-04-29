@@ -220,87 +220,85 @@ if (!isset($_SESSION['user_id'])) {
                 </div>
                 <a href="index.php?controller=message&action=send" class="btn btn-primary">Envoyer un message</a>
             </div>
-        <?php else: ?>
-            <div class="message-container">
-                <?php foreach ($messages as $message): ?>
-                    <div class="card message-card">
-                        <div class="message-header">
-                            <div class="receiver-info">
-                                <div class="receiver-avatar">
-                                    <?= substr($message['receiver_name'], 0, 1) ?>
-                                </div>
-                                <div>
-                                    <div class="receiver-name"><?= htmlspecialchars($message['receiver_name']) ?></div>
-                                    <div class="message-date">
-                                        <?= date('d/m/Y à H:i', strtotime($message['created_at'])) ?>
-                                    </div>
-                                </div>
-                            </div>
+            <?php else: ?>
+    <div class="message-container">
+        <?php foreach ($messages as $message): ?>
+            <div class="card message-card">
+                <div class="message-header">
+                    <div class="receiver-info">
+                        <div class="receiver-avatar">
+                            <?= substr($message['receiver_name'], 0, 1) ?>
                         </div>
-                        
-                        <div class="message-status <?= $message['is_read'] ? 'status-read' : 'status-unread' ?>">
-                            <?= $message['is_read'] ? 'Lu' : 'Non lu' ?>
-                        </div>
-                        
-                        <div class="message-body">
-                            <?= nl2br(htmlspecialchars($message['message'])) ?>
-                        </div>
-                        
-                        <div class="message-footer">
-                            <div class="message-actions">
-                                <a href="index.php?controller=message&action=send&reply_to=<?= $message['id'] ?>" class="btn btn-sm btn-outline-primary">
-                                    <i class="fas fa-reply"></i> Répondre
-                                </a>
+                        <div>
+                            <div class="receiver-name"><?= htmlspecialchars($message['receiver_name']) ?></div>
+                            <div class="message-date">
+                                <?= date('d/m/Y à H:i', strtotime($message['created_at'])) ?>
                             </div>
                         </div>
                     </div>
-                <?php endforeach; ?>
+                </div>
                 
-                <?php foreach ($audioMessages as $audioMessage): ?>
-                    <div class="card message-card audio-message">
-                        <div class="message-header">
-                            <div class="receiver-info">
-                                <div class="receiver-avatar">
-                                    <?= substr($audioMessage['receiver_name'], 0, 1) ?>
-                                </div>
-                                <div>
-                                    <div class="receiver-name"><?= htmlspecialchars($audioMessage['receiver_name']) ?></div>
-                                    <div class="message-date">
-                                        <?= date('d/m/Y à H:i', strtotime($audioMessage['created_at'])) ?>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="message-status <?= $audioMessage['is_read'] ? 'status-read' : 'status-unread' ?>">
-                            <?= $audioMessage['is_read'] ? 'Lu' : 'Non lu' ?>
-                        </div>
-                        
-                        <div class="message-body">
-                            <div>
-                                <i class="fas fa-microphone"></i> Message audio
-                            </div>
-                            <audio controls class="audio-controls">
-                                <source src="data:audio/webm;base64,<?= $audioMessage['audio_data'] ?>" type="audio/webm">
-                                Votre navigateur ne supporte pas la lecture audio.
-                            </audio>
-                        </div>
-                        
-                        <div class="message-footer">
-                            <div class="message-actions">
-                                <a href="index.php?controller=message&action=send&audio=1&reply_to=<?= $audioMessage['id'] ?>" class="btn btn-sm btn-outline-primary">
-                                    <i class="fas fa-microphone"></i> Répondre par audio
-                                </a>
-                            </div>
+                <div class="message-status <?= $message['is_read'] ? 'status-read' : 'status-unread' ?>">
+                    <?= $message['is_read'] ? 'Lu' : 'Non lu' ?>
+                </div>
+                
+                <div class="message-body">
+                    <?= nl2br(htmlspecialchars($message['message'])) ?>
+                </div>
+                
+                <div class="message-footer">
+                    <div class="message-actions">
+                        <a href="index.php?controller=message&action=send&reply_to=<?= $message['id'] ?>" class="btn btn-sm btn-outline-primary">
+                            <i class="fas fa-reply"></i> Répondre
+                        </a>
+                        <!-- Bouton SUPPRIMER -->
+                        <a href="index.php?controller=message&action=delete&id=<?= $message['id'] ?>"
+                           class="btn btn-sm btn-outline-danger"
+                           onclick="return confirm('Voulez-vous vraiment supprimer ce message ?');">
+                            <i class="fas fa-trash"></i> Supprimer
+                        </a>
+                    </div>
+                </div>
+            </div>
+        <?php endforeach; ?>
+    </div>
+<?php endif; ?>
+
+                
+<?php if (!empty($audioMessages)): ?>
+    <h2 class="mt-4">Messages audio envoyés</h2>
+    <?php foreach ($audioMessages as $audio): ?>
+        <div class="card message-card">
+            <div class="message-header">
+                <div class="receiver-info">
+                    <div class="receiver-avatar">
+                        <?= substr($audio['receiver_name'], 0, 1) ?>
+                    </div>
+                    <div>
+                        <div class="receiver-name"><?= htmlspecialchars($audio['receiver_name']) ?></div>
+                        <div class="message-date">
+                            <?= date('d/m/Y à H:i', strtotime($audio['created_at'])) ?>
                         </div>
                     </div>
-                <?php endforeach; ?>
+                </div>
             </div>
-            
-            <div class="text-center mt-4">
-                <a href="index.php?controller=message&action=send" class="btn btn-primary">Envoyer un nouveau message</a>
+            <div class="message-body">
+                <audio controls src="<?= htmlspecialchars($audio['audio_url']) ?>"></audio>
             </div>
-        <?php endif; ?>
+            <div class="message-footer">
+                <div class="message-actions">
+                    <!-- Bouton SUPPRIMER AUDIO -->
+                    <a href="index.php?controller=message&action=deleteAudio&id=<?= $audio['id'] ?>"
+                       class="btn btn-sm btn-outline-danger"
+                       onclick="return confirm('Voulez-vous vraiment supprimer ce message audio ?');">
+                        <i class="fas fa-trash"></i> Supprimer
+                    </a>
+                </div>
+            </div>
+        </div>
+    <?php endforeach; ?>
+<?php endif; ?>
+
     </div>
     
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>

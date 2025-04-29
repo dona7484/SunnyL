@@ -32,15 +32,6 @@ class NotificationController extends Controller {
             exit;
         }
     }
-    public function history() {
-        if (!isset($_SESSION['user_id'])) {
-            header('Location: index.php?controller=auth&action=login');
-            exit;
-        }
-        $notificationModel = new NotificationModel();
-        $allNotifications = $notificationModel->getAllNotifications($_SESSION['user_id']);
-        $this->render('notification/history', ['notifications' => $allNotifications]);
-    }
     
     public function subscribe() {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -113,11 +104,12 @@ class NotificationController extends Controller {
                     $url = 'index.php?controller=photo&action=gallery';
                 } elseif ($type === 'event') {
                     $url = 'index.php?controller=event&action=index';
-                } {
-                    
+                } elseif ($type === 'video_call') {
+                    // Amélioration de la redirection pour les appels vidéo
+                    $url = 'index.php?controller=call&action=receive&from=' . $_SESSION['user_id'] . '&room=' . $relatedId;
                     
                     // Envoyer une notification WebSocket en plus de la notification standard
-                    $this->sendWebSocketNotification($userId, $content, $relatedId);
+                    $this->sendWebSocketNotification($userId, 'video_call', $content, $relatedId);
                 }
                 
                 // Envoyer une notification push

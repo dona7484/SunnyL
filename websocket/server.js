@@ -124,53 +124,18 @@ try {
                         }
                         break;
                         
-                        case 'notification':
-                            // Envoyer une notification à un destinataire spécifique
-                            if (data.receiverId && data.content) {
-                                
-                        
-                                // Préparer la notification à envoyer
-                                let notificationToSend = {
-                                    type: 'notification',
-                                    senderId: userId,
-                                    content: data.content,
-                                    notifType: data.notifType || 'info',
-                                    timestamp: Date.now()
-                                };
-                        
-                                // Pour les appels vidéo, assurer que toutes les informations nécessaires sont présentes
-                                if (isVideoCall) {
-                                    // Si le contenu est une chaîne, la convertir en objet
-                                    if (typeof data.content === 'string') {
-                                        notificationToSend.content = {
-                                            type: 'video_call',
-                                            message: data.content,
-                                            senderId: userId,
-                                            relatedId: data.relatedId || null,
-                                            senderName: 'Utilisateur' // Idéalement, récupère le nom réel
-                                        };
-                                    }
-                        
-                                    // Priorité maximale pour l'envoi
-                                    const sent = sendToUser(data.receiverId, notificationToSend);
-                        
-                                    // Traçage spécial pour les appels vidéo
-                                    console.log(`Notification d'appel vidéo envoyée: ${sent ? 'SUCCÈS' : 'ÉCHEC'}`);
-                        
-                                    // Si l'envoi échoue, essayer à nouveau après un court délai
-                                    if (!sent) {
-                                        setTimeout(() => {
-                                            const secondAttempt = sendToUser(data.receiverId, notificationToSend);
-                                            console.log(`Seconde tentative d'envoi d'appel vidéo: ${secondAttempt ? 'SUCCÈS' : 'ÉCHEC'}`);
-                                        }, 1000);
-                                    }
-                                } else {
-                                    // Notification standard
-                                    sendToUser(data.receiverId, notificationToSend);
-                                }
-                            }
-                            break;
-                        
+                    case 'notification':
+                        // Envoyer une notification à un destinataire spécifique
+                        if (data.receiverId && data.content) {
+                            sendToUser(data.receiverId, {
+                                type: 'notification',
+                                senderId: userId,
+                                content: data.content,
+                                notifType: data.notifType || 'info',
+                                timestamp: Date.now()
+                            });
+                        }
+                        break;
                         
                     case 'ping':
                         // Répondre au ping client

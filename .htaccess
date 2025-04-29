@@ -6,16 +6,8 @@
 </IfModule>
 
 <IfModule mod_headers.c>
+    # Ajouter les en-têtes CORS pour le Service Worker
     <FilesMatch "service-worker\.js$">
-        Header set Content-Type "application/javascript"
         Header set Service-Worker-Allowed "/"
     </FilesMatch>
 </IfModule>
-# Ne pas rediriger les fichiers et dossiers existants
-RewriteCond %{REQUEST_FILENAME} -f [OR]
-RewriteCond %{REQUEST_FILENAME} -d
-RewriteRule ^ - [L]
-
-# Sinon, tout le reste va vers index.php
-RewriteRule . /sunnylink/index.php [L]
-
