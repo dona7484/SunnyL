@@ -382,7 +382,6 @@ $notifs = $notifModel->getUnreadNotifications($_SESSION['user_id'] ?? 0) ?? [];
     <source src="audio/notif-sound.mp3" type="audio/mpeg">
   </audio>
 
-  <script src="js/websocket.js"></script>
 <script src="js/notifications.js"></script>
 <script src="/SunnyLink/public/js/global-notifications.js"></script>
 <script src="/SunnyLink/public/js/main.js"></script>

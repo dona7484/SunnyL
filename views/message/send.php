@@ -403,8 +403,33 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // Fonction pour envoyer le message audio via l'API REST (fallback)
-    function sendAudioViaREST(receiverId, audioData) {
-        showStatus('Envoi du message audio via REST API...', 'info');
+    function sendAudioMessage(audioBlob, receiverId) {
+    // Vérifier si WebSocket est disponible
+    if (typeof sunnyLinkWS !== 'undefined' && sunnyLinkWS.readyState === WebSocket.OPEN) {
+        showStatus('Envoi du message audio via WebSocket...', 'info');
+        var reader = new FileReader();
+        reader.onload = function() {
+            // On envoie le message audio (base64) via WebSocket
+            sunnyLinkWS.send(JSON.stringify({
+                type: 'audio',
+                receiverId: receiverId,
+                audioData: reader.result // base64
+            }));
+            showStatus('Message audio envoyé avec succès (via WebSocket).', 'success');
+            resetAudioRecording();
+        };
+        reader.readAsDataURL(audioBlob);
+    } else {
+        // Fallback API REST si WebSocket non dispo
+        sendAudioViaREST(receiverId, audioBlob);
+    }
+}
+
+// Adapter sendAudioViaREST pour accepter un blob
+function sendAudioViaREST(receiverId, audioBlob) {
+    showStatus('Envoi du message audio via REST API...', 'info');
+    var reader = new FileReader();
+    reader.onload = function() {
         fetch('index.php?controller=message&action=sendAudio', {
             method: 'POST',
             headers: {
@@ -412,7 +437,7 @@ document.addEventListener('DOMContentLoaded', function() {
             },
             body: JSON.stringify({
                 receiver_id: receiverId,
-                audio_data: audioData
+                audio_data: reader.result // base64
             })
         })
         .then(response => response.json())
@@ -427,7 +452,10 @@ document.addEventListener('DOMContentLoaded', function() {
         .catch(error => {
             showStatus('Erreur de connexion: ' + error.message, 'danger');
         });
-    }
+    };
+    reader.readAsDataURL(audioBlob);
+}
+
     
     // Fonction pour afficher un message de statut
     function showStatus(message, type) {
