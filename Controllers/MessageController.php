@@ -383,6 +383,23 @@ class MessageController extends Controller {
         return (isset($_SERVER['CONTENT_TYPE']) && 
                 (strpos($_SERVER['CONTENT_TYPE'], 'application/json') !== false));
     }
+    public function delete($id) {
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+        if (!isset($_SESSION['user_id'])) {
+            header("Location: index.php?controller=auth&action=login");
+            exit;
+        }
+    
+    
+        // Supprimer le message
+        Message::delete($id);
+    
+        $_SESSION['success_message'] = "Message supprimé avec succès.";
+        header('Location: index.php?controller=message&action=received');
+        exit;
+    }
     
     private function checkAuthentication() {
         if (session_status() === PHP_SESSION_NONE) {

@@ -38,6 +38,9 @@ $activities = Activity::getRecentActivities($userId, 5);
             <div class="d-flex justify-content-between align-items-center">
                 <h2><i class="fas fa-home"></i> Tableau de bord de la famille</h2>
                 <div>
+                <a href="index.php?controller=parametres&action=index" class="btn btn-settings">
+    <img src="/SunnyLink/public/images/settings.png" alt="Paramètres" style="width:28px;vertical-align:middle;">
+</a>
                     <a href="index.php?controller=auth&action=logout" class="btn btn-outline-danger">
                         <i class="fas fa-sign-out-alt"></i> Déconnexion
                     </a>
@@ -137,10 +140,7 @@ $activities = Activity::getRecentActivities($userId, 5);
                                            class="btn btn-sm btn-outline-primary">
                                             <i class="fas fa-comment"></i>
                                         </a>
-                                        <a href="index.php?controller=call&action=call&id=<?= $senior['user_id'] ?>" 
-                                           class="btn btn-sm btn-outline-success">
-                                            <i class="fas fa-video"></i>
-                                        </a>
+                                    
                                     </div>
                                 </div>
                             <?php endforeach; ?>
@@ -224,17 +224,6 @@ $activities = Activity::getRecentActivities($userId, 5);
                                     <div class="card-body">
                                         <i class="fas fa-image fa-3x mb-3 text-success"></i>
                                         <h5>Partager une photo</h5>
-                                    </div>
-                                </div>
-                            </a>
-                        </div>
-                        
-                        <div class="col-md-4 mb-3">
-                            <a href="index.php?controller=call&action=start" class="quick-action-card">
-                                <div class="card h-100 text-center p-3">
-                                    <div class="card-body">
-                                        <i class="fas fa-video fa-3x mb-3 text-info"></i>
-                                        <h5>Appel vidéo</h5>
                                     </div>
                                 </div>
                             </a>

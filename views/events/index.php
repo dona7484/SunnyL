@@ -39,6 +39,9 @@ $title = "Liste des Événements";
 </head>
 <body>
     <div class="container mt-5">
+    <a href="index.php?controller=home&action=dashboard" class="back-button">
+            <i class="fas fa-arrow-left"></i> Retour au tableau de bord
+        </a>
         <h2>Liste des Événements</h2>
         <a href="index.php?controller=event&action=add" class="btn btn-primary mb-3">Ajouter un événement</a>
         <table class="table">

@@ -180,6 +180,9 @@
     </style>
 </head>
 <body>
+<a href="index.php?controller=home&action=dashboard" class="back-button">
+            <i class="fas fa-arrow-left"></i> Retour au tableau de bord
+        </a>
     <div class="container mt-4">
         <h1 class="text-center mb-4">Galerie Photos</h1>
         

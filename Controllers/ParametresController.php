@@ -1,186 +1,123 @@
 <?php
-require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../models/User.php';
-require_once __DIR__ . '/../models/Relation.php';
+require_once __DIR__ . '/../models/SeniorModel.php';
+require_once __DIR__ . '/Controller.php';
 
-class ParametresController extends Controller {
-    
-    public function index() {
-        if (session_status() === PHP_SESSION_NONE) {
-            session_start();
-        }
-        
-        // Vérifier si l'utilisateur est connecté
+class ParametresController extends Controller
+{
+    // Affichage de la page paramètres
+    public function index()
+    {
         if (!isset($_SESSION['user_id'])) {
             header('Location: index.php?controller=auth&action=login');
             exit;
         }
-        
         $userId = $_SESSION['user_id'];
-        $userRole = $_SESSION['role'];
-        
-        // Récupérer les informations de l'utilisateur
         $user = User::getById($userId);
-        
-        // Récupérer les parents âgés liés (si l'utilisateur est un membre de la famille)
-        $parentsLies = [];
-        if ($userRole === 'familymember') {
-            $relationModel = new RelationModel();
-            $parentsLies = $relationModel->getSeniorsForFamilyMember($userId);
-        }
-        
-        // Récupérer les préférences de notification
-        $notifPrefs = $this->getNotificationPreferences($userId);
-        
-        // Rendre la vue
+
+        // Récupérer les seniors liés à ce membre de la famille
+        $seniorModel = new SeniorModel();
+        $linkedParents = $seniorModel->getSeniorsForFamilyMember($userId);
+
         $this->render('parametres/index', [
             'user' => $user,
-            'parentsLies' => $parentsLies,
-            'notifPrefs' => $notifPrefs
+            'linkedParents' => $linkedParents
         ]);
     }
-    
-    public function updateProfile() {
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            header('Location: index.php?controller=parametres&action=index');
+
+    // Mise à jour du profil (nom, email, avatar)
+    public function updateProfile()
+    {
+        if (!isset($_SESSION['user_id'])) {
+            header('Location: index.php?controller=auth&action=login');
             exit;
         }
-        
         $userId = $_SESSION['user_id'];
-        $photoUrl = null;
-        
-        // Traitement de l'upload de photo de profil
-        if (isset($_FILES['photo_profil']) && $_FILES['photo_profil']['error'] === UPLOAD_ERR_OK) {
-            $uploadDir = 'uploads/profiles/';
-            if (!is_dir($uploadDir)) {
-                mkdir($uploadDir, 0777, true);
-            }
-            
-            $filename = uniqid() . '-' . basename($_FILES['photo_profil']['name']);
-            $uploadFile = $uploadDir . $filename;
-            
-            if (move_uploaded_file($_FILES['photo_profil']['tmp_name'], $uploadFile)) {
-                $photoUrl = $uploadFile;
-            }
+        $name = $_POST['name'] ?? '';
+        $email = $_POST['email'] ?? '';
+        $avatar = null;
+
+        // Gestion de l'upload d'avatar si besoin
+        if (isset($_FILES['avatar']) && $_FILES['avatar']['error'] === UPLOAD_ERR_OK) {
+            $uploadDir = __DIR__ . '/../public/images/';
+            $filename = uniqid() . '-' . basename($_FILES['avatar']['name']);
+            move_uploaded_file($_FILES['avatar']['tmp_name'], $uploadDir . $filename);
+            $avatar = $filename;
         }
-        
-        // Mise à jour du profil utilisateur
-        User::updateProfile($userId, $_SESSION['name'], null, null, $photoUrl);
-        
-        // Redirection vers la page des paramètres
+
+        $result = User::updateProfile($userId, $name, $email, null, $avatar);
+
+        if ($result) {
+            $_SESSION['success_message'] = "Profil mis à jour.";
+        } else {
+            $_SESSION['error_message'] = "Erreur lors de la mise à jour du profil.";
+        }
         header('Location: index.php?controller=parametres&action=index');
         exit;
     }
-    
-    public function updateNotifications() {
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            header('Location: index.php?controller=parametres&action=index');
+
+    // Changement de mot de passe
+    public function updatePassword()
+    {
+        if (!isset($_SESSION['user_id'])) {
+            header('Location: index.php?controller=auth&action=login');
             exit;
         }
-        
         $userId = $_SESSION['user_id'];
-        
-        // Récupérer les préférences de notification
-        $emailEnabled = isset($_POST['email_notif']) ? 1 : 0;
-        $smsEnabled = isset($_POST['sms_notif']) ? 1 : 0;
-        $pushEnabled = isset($_POST['push_notif']) ? 1 : 0;
-        
-        // Mettre à jour les préférences
-        $this->updateNotificationPreferences($userId, $emailEnabled, $smsEnabled, $pushEnabled);
-        
-        // Redirection vers la page des paramètres
-        header('Location: index.php?controller=parametres&action=index');
-        exit;
-    }
-    
-    
-    public function updatePassword() {
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            header('Location: index.php?controller=parametres&action=index');
-            exit;
-        }
-        
-        $userId = $_SESSION['user_id'];
-        $currentPassword = $_POST['current_password'] ?? '';
         $newPassword = $_POST['new_password'] ?? '';
-        $confirmPassword = $_POST['confirm_password'] ?? '';
-        
-        // Vérifier que les mots de passe correspondent
-        if ($newPassword !== $confirmPassword) {
-            $_SESSION['error_message'] = "Les nouveaux mots de passe ne correspondent pas.";
+        if (strlen($newPassword) < 6) {
+            $_SESSION['error_message'] = "Le mot de passe doit contenir au moins 6 caractères.";
             header('Location: index.php?controller=parametres&action=index');
             exit;
         }
-        
-        // Vérifier le mot de passe actuel
         $user = User::getById($userId);
-        if (!password_verify($currentPassword, $user['password'])) {
-            $_SESSION['error_message'] = "Le mot de passe actuel est incorrect.";
-            header('Location: index.php?controller=parametres&action=index');
-            exit;
+        $result = User::updateProfile($userId, $user['name'], $user['email'], $newPassword, $user['avatar'] ?? null);
+
+        if ($result) {
+            $_SESSION['success_message'] = "Mot de passe modifié.";
+        } else {
+            $_SESSION['error_message'] = "Erreur lors du changement de mot de passe.";
         }
-        
-        // Mettre à jour le mot de passe
-        User::updateProfile($userId, $user['name'], $user['email'], $newPassword);
-        
-        $_SESSION['success_message'] = "Votre mot de passe a été mis à jour avec succès.";
         header('Location: index.php?controller=parametres&action=index');
         exit;
     }
-    
-    public function removeParent() {
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            header('Location: index.php?controller=parametres&action=index');
+
+    // Ajout d'un parent (redirige vers la page d'ajout)
+    public function addParent()
+    {
+        // Ici tu peux rediriger vers un formulaire ou gérer l'ajout direct
+        header('Location: index.php?controller=relation&action=create');
+        exit;
+    }
+
+    // Suppression d'un parent lié
+    public function removeParent()
+    {
+        if (!isset($_SESSION['user_id'])) {
+            header('Location: index.php?controller=auth&action=login');
             exit;
         }
-        
-        $userId = $_SESSION['user_id'];
-        $seniorId = $_POST['senior_id'] ?? null;
-        
-        if (!$seniorId) {
-            header('Location: index.php?controller=parametres&action=index');
-            exit;
+        $familyId = $_SESSION['user_id'];
+        $parentId = $_POST['parent_id'] ?? null;
+        if ($parentId) {
+            $db = new DbConnect();
+            $pdo = $db->getConnection();
+            $stmt = $pdo->prepare("DELETE FROM relations WHERE family_id = ? AND senior_id = ?");
+            $stmt->execute([$familyId, $parentId]);
+            $_SESSION['success_message'] = "Parent supprimé.";
         }
-        
-        // Supprimer la relation
-        $relationModel = new RelationModel();
-        $relationModel->removeRelation($userId, $seniorId);
-        
         header('Location: index.php?controller=parametres&action=index');
         exit;
     }
-    
-    private function getNotificationPreferences($userId) {
-        $db = new DbConnect();
-        $conn = $db->getConnection();
-        
-        $stmt = $conn->prepare("SELECT * FROM user_preferences WHERE user_id = ?");
-        $stmt->execute([$userId]);
-        
-        $prefs = $stmt->fetch(PDO::FETCH_ASSOC);
-        
-        if (!$prefs) {
-            // Créer des préférences par défaut si elles n'existent pas
-            $stmt = $conn->prepare("INSERT INTO user_preferences (user_id, email_notif, sms_notif, push_notif, dark_mode) VALUES (?, 1, 1, 1, 0)");
-            $stmt->execute([$userId]);
-            
-            return [
-                'email_notif' => 1,
-                'sms_notif' => 1,
-                'push_notif' => 1,
-                'dark_mode' => 0
-            ];
-        }
-        
-        return $prefs;
+    public function senior()
+{
+    if (!isset($_SESSION['user_id'])) {
+        header("Location: index.php?controller=auth&action=login");
+        exit;
     }
-    
-    private function updateNotificationPreferences($userId, $email, $sms, $push) {
-        $db = new DbConnect();
-        $conn = $db->getConnection();
-        
-        $stmt = $conn->prepare("UPDATE user_preferences SET email_notif = ?, sms_notif = ?, push_notif = ? WHERE user_id = ?");
-        return $stmt->execute([$email, $sms, $push, $userId]);
-    }
-    
+    $user = User::getById($_SESSION['user_id']);
+    $this->render('parametres/senior', ['user' => $user]);
 }
+
+}
+?>

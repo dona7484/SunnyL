@@ -49,7 +49,20 @@ class NotificationController extends Controller {
             }
         }
     }
+    public function missed() {
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+        if (!isset($_SESSION['user_id'])) {
+            header('Location: index.php?controller=auth&action=login');
+            exit;
+        }
     
+        $notifications = Notification::getUnreadByUserId($_SESSION['user_id']);
+        $this->render('notification/missed', [
+            'notifications' => $notifications
+        ]);
+    }
     // Méthode pour créer une notification
     public function create() {
         try {

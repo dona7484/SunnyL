@@ -45,13 +45,7 @@ $router->get('/spotify/callback', [SpotifyController::class, 'authCallback']);
 $router->get('/spotify/player', [SpotifyController::class, 'player']);
 $router->post('/spotify/control', [SpotifyController::class, 'control']);
 
-// 📹 Appels vidéo
-$router->get('/call/start', [CallController::class, 'start']);
-$router->get('/call/call', [CallController::class, 'call']);
-$router->get('/call/receive', [CallController::class, 'receive']);
-$router->get('/call/join', [CallController::class, 'join']);
-$router->post('/call/getToken', [CallController::class, 'getToken']);
-$router->post('/call/end', [CallController::class, 'end']);
+
 $router->get('/parametres', [ParametresController::class, 'index']);
 $router->post('/parametres/updateProfile', [ParametresController::class, 'updateProfile']);
 $router->post('/parametres/updateNotifications', [ParametresController::class, 'updateNotifications']);
@@ -63,3 +57,7 @@ $router->post('/relation/add', [RelationController::class, 'add']);
 $router->get('/support/faq', [SupportController::class, 'faq']);
 $router->get('/support/contact', [SupportController::class, 'contact']);
 $router->post('/support/contact', [SupportController::class, 'contact']);
+
+
+$router->get('/relation/create', [RelationController::class, 'create']);
+$router->post('/relation/store', [RelationController::class, 'store']);
