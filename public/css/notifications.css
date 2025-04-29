@@ -1,0 +1,220 @@
+/* Styles pour les notifications SunnyLink */
+
+/* Bulle de notification */
+.notif-bubble {
+    position: fixed;
+    top: 20%;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #fff;
+    border-radius: 12px;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+    padding: 25px 30px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    z-index: 9999;
+    width: 80%;
+    max-width: 600px;
+    transition: all 0.3s ease;
+}
+
+/* Variantes de notifications par type */
+.notif-bubble.notif-message {
+    border-left: 5px solid #4285F4; /* Bleu pour les messages */
+}
+
+.notif-bubble.notif-audio {
+    border-left: 5px solid #F44336; /* Rouge pour l'audio */
+}
+
+.notif-bubble.notif-photo {
+    border-left: 5px solid #4CAF50; /* Vert pour les photos */
+}
+
+.notif-bubble.notif-event {
+    border-left: 5px solid #FF9800; /* Orange pour les événements */
+}
+
+/* Icône de notification */
+.notif-bubble-icon {
+    width: 70px;
+    height: 70px;
+    padding: 12px;
+    border-radius: 50%;
+    transition: transform 0.3s ease;
+}
+
+.notif-bubble:hover .notif-bubble-icon {
+    transform: scale(1.1);
+}
+
+/* Conteneur du contenu */
+.notif-content {
+    flex-grow: 1;
+}
+
+/* Type de notification */
+.notif-type-label {
+    font-size: 14px;
+    color: #666;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 600;
+}
+
+/* Texte principal de la notification */
+.notif-bubble-text {
+    font-size: 24px;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 10px;
+    line-height: 1.4;
+}
+
+/* Timestamp */
+.notif-timestamp {
+    font-size: 14px;
+    color: #888;
+    font-style: italic;
+}
+
+/* Bouton d'action pour seniors (plus grand) */
+.notif-button {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    border: none;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    margin-left: auto;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    transition: transform 0.3s ease, background-color 0.2s ease;
+}
+
+.notif-button:hover {
+    transform: scale(1.1);
+}
+
+/* Couleurs des boutons par type */
+.notif-button.notif-message {
+    background-color: #4285F4;
+}
+
+.notif-button.notif-audio {
+    background-color: #F44336;
+}
+
+.notif-button.notif-photo {
+    background-color: #4CAF50;
+}
+
+.notif-button.notif-event {
+    background-color: #FF9800;
+}
+
+.notif-button img {
+    width: 40px;
+    height: 40px;
+    filter: brightness(0) invert(1); /* Rendre l'image blanche */
+}
+
+/* Animations d'entrée et de sortie */
+@keyframes notification-in {
+    0% { 
+        opacity: 0; 
+        transform: translate(-50%, -30px); 
+    }
+    100% { 
+        opacity: 1; 
+        transform: translate(-50%, 0); 
+    }
+}
+
+@keyframes notification-out {
+    0% { 
+        opacity: 1; 
+        transform: translate(-50%, 0); 
+    }
+    100% { 
+        opacity: 0; 
+        transform: translate(-50%, -30px); 
+    }
+}
+
+.notification-show {
+    animation: notification-in 0.5s forwards;
+}
+
+.notification-hide {
+    animation: notification-out 0.5s forwards;
+}
+
+/* Badge de notification dans la barre de navigation */
+.notification-badge {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    background-color: #ff4d4d;
+    color: white;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+/* Pour les seniors: afficher les notifications à l'écran plus longtemps */
+body[data-user-role="senior"] .notif-bubble {
+    padding: 30px 35px; /* Padding plus grand */
+}
+
+body[data-user-role="senior"] .notif-bubble-text {
+    font-size: 28px; /* Police plus grande */
+    line-height: 1.3;
+}
+
+body[data-user-role="senior"] .notif-button {
+    width: 90px; /* Bouton plus grand */
+    height: 90px;
+}
+
+body[data-user-role="senior"] .notif-button img {
+    width: 45px;
+    height: 45px;
+}
+
+/* Styles pour petit écran */
+@media (max-width: 768px) {
+    .notif-bubble {
+        width: 95%;
+        padding: 20px;
+        gap: 15px;
+    }
+    
+    .notif-bubble-icon {
+        width: 50px;
+        height: 50px;
+        padding: 8px;
+    }
+    
+    .notif-bubble-text {
+        font-size: 18px;
+    }
+    
+    .notif-button {
+        width: 60px;
+        height: 60px;
+    }
+    
+    .notif-button img {
+        width: 30px;
+        height: 30px;
+    }
+}

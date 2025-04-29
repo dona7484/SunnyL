@@ -9,6 +9,8 @@ class NotificationController extends Controller {
     private $vapidPublicKey = 'BFnoZsHNOnO5jG0XncDui6EyziGdamtD6rXxQ37tPGmsutyV2ZtRXtwedlaEMFqLG0dBD7AzPToapQmM0srRiJI';
     private $vapidPrivateKey = 'L8IGRAqN9gHQDL9ewkV3_IsmtMLxSU9ZHWeyyHpUHwU';
 
+    protected $notificationModel;
+
     public function __construct() {
         // Instanciation du modèle de notification
         $this->notificationModel = new NotificationModel();
@@ -29,6 +31,15 @@ class NotificationController extends Controller {
             header('Location: index.php?controller=dashboard');
             exit;
         }
+    }
+    public function history() {
+        if (!isset($_SESSION['user_id'])) {
+            header('Location: index.php?controller=auth&action=login');
+            exit;
+        }
+        $notificationModel = new NotificationModel();
+        $allNotifications = $notificationModel->getAllNotifications($_SESSION['user_id']);
+        $this->render('notification/history', ['notifications' => $allNotifications]);
     }
     
     public function subscribe() {
@@ -77,59 +88,127 @@ class NotificationController extends Controller {
             echo json_encode(['error' => $e->getMessage()]);
         }
     }
-// Méthode pour envoyer une notification
-public function sendNotification($userId, $type, $content, $relatedId = null, $isConfirmation = false) {
-    try {
-        // Pour les messages audio, forcer le type à 'audio'
-        if (strpos(strtolower($content), 'audio') !== false) {
-            $type = 'audio';
+    
+    // Méthode pour envoyer une notification
+    public function sendNotification($userId, $type, $content, $relatedId = null, $isConfirmation = false) {
+        try {
+            // Log pour le débogage
+            error_log("Tentative d'envoi de notification - Type: $type, UserId: $userId, Content: $content, RelatedId: $relatedId");
+            
+            // Pour les messages audio, forcer le type à 'audio'
+            if ($type === 'audio' || strpos(strtolower($content), 'audio') !== false) {
+                $type = 'audio';
+            }
+            
+            $notifId = Notification::create($userId, $type, $content, $relatedId, $isConfirmation);
+            
+            if ($notifId) {
+                error_log("Notification créée avec succès - ID: $notifId, Type: $type, UserId: $userId");
+                
+                // URL de redirection
+                $url = 'index.php?controller=home&action=dashboard'; // URL par défaut
+                if ($type === 'message' || $type === 'audio') {
+                    $url = 'index.php?controller=message&action=received';
+                } elseif ($type === 'photo') {
+                    $url = 'index.php?controller=photo&action=gallery';
+                } elseif ($type === 'event') {
+                    $url = 'index.php?controller=event&action=index';
+                } {
+                    
+                    
+                    // Envoyer une notification WebSocket en plus de la notification standard
+                    $this->sendWebSocketNotification($userId, $content, $relatedId);
+                }
+                
+                // Envoyer une notification push
+                $pushResult = $this->sendPush($userId, $type, 'Nouvelle notification', $content, $url);
+                error_log("Résultat de l'envoi push: " . ($pushResult ? "Succès" : "Échec"));
+                
+                return $notifId;
+            } else {
+                error_log("Échec de la création de notification - Type: $type, UserId: $userId");
+                return false;
+            }
+        } catch (Exception $e) {
+            error_log("Erreur lors de l'envoi de la notification : " . $e->getMessage());
+            return false;
         }
-        
-        $notifId = Notification::create($userId, $type, $content, $relatedId, $isConfirmation);
-        error_log("Notification créée - Type: $type, UserId: $userId, Content: $content, NotifId: $notifId");
-        
-        // URL de redirection
-        $url = 'index.php?controller=home&action=dashboard'; // URL par défaut
-        if ($type === 'message' || $type === 'audio') {
-            $url = 'index.php?controller=message&action=received';
-        } elseif ($type === 'photo') {
-            $url = 'index.php?controller=photo&action=gallery';
-        } elseif ($type === 'event') {
-            $url = 'index.php?controller=event&action=index';
-        }
-        
-        // Envoyer une notification push
-        $this->sendPush($userId, $type, 'Nouvelle notification', $content, $url);
-        return $notifId;
-    } catch (Exception $e) {
-        error_log("Erreur lors de l'envoi de la notification : " . $e->getMessage());
-        return false;
     }
-}
-
-
+    
+    private function sendWebSocketNotification($userId, $type, $content, $relatedId = null) {
+        try {
+            // Préparer les données à envoyer
+            $notification = [
+                'type' => 'notification',
+                'receiverId' => $userId,
+                'content' => [
+                    'type' => $type,
+                    'message' => $content,
+                    'relatedId' => $relatedId,
+                    'senderId' => $_SESSION['user_id'] ?? null,
+                    'senderName' => $_SESSION['name'] ?? 'Utilisateur',
+                    'timestamp' => time()
+                ],
+                'notifType' => $type
+            ];
+            
+            // Tentative d'envoi via cURL
+            $ch = curl_init();
+            curl_setopt($ch, CURLOPT_URL, 'https://' . $_SERVER['SERVER_NAME'] . ':8080');
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_POST, true);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($notification));
+            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false); // Pour le développement seulement
+            curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false); // Pour le développement seulement
+            
+            $result = curl_exec($ch);
+            $error = curl_error($ch);
+            curl_close($ch);
+            
+            if ($error) {
+                error_log("Erreur cURL lors de l'envoi de notification WebSocket: " . $error);
+                return false;
+            }
+            
+            error_log("Notification WebSocket envoyée avec succès à l'utilisateur $userId");
+            return true;
+        } catch (Exception $e) {
+            error_log("Erreur lors de l'envoi de notification WebSocket: " . $e->getMessage());
+            return false;
+        }
+    }
     // Méthode pour récupérer toutes les notifications non lues de l'utilisateur
     public function getUserNotifications() {
+        // Définir l'en-tête JSON AVANT toute sortie
+        header('Content-Type: application/json');
+        
         try {
-            if (session_status() === PHP_SESSION_NONE) session_start();
+            if (session_status() === PHP_SESSION_NONE) {
+                session_start();
+            }
             
             // Assurez-vous que $_SESSION['user_id'] est défini
             if (!isset($_SESSION['user_id'])) {
-                throw new Exception("L'utilisateur n'est pas connecté.");
+                echo json_encode(['error' => "L'utilisateur n'est pas connecté."]);
+                exit;
             }
     
+            // Log pour le débogage
+            error_log("Récupération des notifications pour l'utilisateur ID: " . $_SESSION['user_id']);
+            
             // Récupération des notifications
             $currentNotifications = Notification::getUnreadByUserId($_SESSION['user_id']);
             
-            // Définir l'en-tête JSON
-            header('Content-Type: application/json');
+            // Log pour le débogage
+            error_log("Nombre de notifications trouvées: " . count($currentNotifications));
             
             // Retourner les notifications en JSON
             echo json_encode($currentNotifications);
         } catch (Exception $e) {
             error_log("Erreur dans getUserNotifications : " . $e->getMessage());
-            echo json_encode(['error' => 'Une erreur est survenue dans la récupération des notifications']);
+            echo json_encode(['error' => 'Une erreur est survenue: ' . $e->getMessage()]);
         }
+        exit; // Terminer l'exécution pour éviter toute sortie supplémentaire
     }
     
     // Méthode pour récupérer la dernière notification non lue
@@ -146,8 +225,11 @@ public function sendNotification($userId, $type, $content, $relatedId = null, $i
             echo json_encode(['error' => 'Erreur lors de la récupération de la notification : ' . $e->getMessage()]);
         }
     }
-
+    
     public function markNotificationAsRead() {
+        // Définir l'en-tête Content-Type AVANT toute sortie
+        header('Content-Type: application/json');
+        
         try {
             // Récupérer les données JSON
             $jsonData = json_decode(file_get_contents('php://input'), true);
@@ -167,35 +249,46 @@ public function sendNotification($userId, $type, $content, $relatedId = null, $i
                 $notificationModel = new NotificationModel();
                 $notification = $notificationModel->getNotificationById($notifId);
                 $type = $notification['type'] ?? '';
+                $relatedId = $notification['related_id'] ?? null;
                 
+                // Marquer la notification comme lue
                 $result = $notificationModel->markAsRead($notifId);
                 
-                if ($result) {
-                    // Récupérer l'ID du membre de la famille (expéditeur)
-                    $senderId = $notificationModel->getFamilyMemberIdForNotification($notifId);
-                    
-                    if ($senderId) {
-                        // Vérifier que l'expéditeur est bien un family member
-                        $userModel = new User();
-                        $sender = $userModel->getById($senderId);
-                        
-                        if ($sender && $sender['role'] === 'familymember') {
-                            // Envoyer une notification au family member
-                            $this->sendNotification(
-                                $senderId,
-                                'read_confirmation',
-                                'Votre message a été lu par le senior',
-                                $notification['related_id'] ?? null,
-                                true
-                            );
-                        }
-                    }
-                    
-                    // Inclure le type dans la réponse pour le débogage
-                    echo json_encode(['success' => true, 'type' => $type]);
-                } else {
-                    echo json_encode(['success' => false, 'error' => 'Mise à jour échouée']);
+                // Si c'est une notification de photo, marquer la photo comme vue
+                if ($type === 'photo' && $relatedId) {
+                    require_once __DIR__ . '/../models/Photo.php';
+                    Photo::markAsViewed($relatedId);
                 }
+                
+                // Si c'est une notification d'événement, marquer l'événement comme lu
+                if ($type === 'event' && $relatedId) {
+                    require_once __DIR__ . '/../models/EventModel.php';
+                    $eventModel = new EventModel();
+                    $eventModel->markAsRead($relatedId);
+                }
+                
+                // Récupérer l'ID du membre de la famille (expéditeur)
+                $senderId = $notificationModel->getFamilyMemberIdForNotification($notifId);
+                
+                if ($senderId) {
+                    // Vérifier que l'expéditeur est bien un family member
+                    require_once __DIR__ . '/../models/User.php';
+                    $userModel = new User();
+                    $sender = $userModel->getById($senderId);
+                    
+                    if ($sender && $sender['role'] === 'familymember') {
+                        // Envoyer une notification au family member
+                        $this->sendNotification(
+                            $senderId,
+                            'read_confirmation',
+                            'Votre message a été lu par le senior',
+                            $relatedId,
+                            true
+                        );
+                    }
+                }
+                
+                echo json_encode(['success' => true, 'type' => $type]);
             } else {
                 echo json_encode(['success' => false, 'error' => 'ID de notification manquant']);
             }
@@ -203,13 +296,23 @@ public function sendNotification($userId, $type, $content, $relatedId = null, $i
             error_log("Erreur lors de la mise à jour de la notification: " . $e->getMessage());
             echo json_encode(['success' => false, 'error' => $e->getMessage()]);
         }
+        exit; // Terminer l'exécution pour éviter toute sortie supplémentaire
     }
     
     // Méthode pour envoyer une notification push
     public function sendPush($userId, $type, $title, $body, $url = null) {
         $subscription = Notification::getSubscriptionByUserId($userId);
         if (!$subscription) return false;
-    
+        
+        // Décoder la chaîne JSON en tableau associatif PHP
+        $subscriptionArray = json_decode($subscription, true);
+        
+        // Vérifier que le décodage a fonctionné
+        if (!is_array($subscriptionArray)) {
+            error_log("Erreur: La subscription n'est pas un JSON valide pour l'utilisateur $userId");
+            return false;
+        }
+        
         $webPush = new WebPush([
             'VAPID' => [
                 'subject' => 'mailto:dona7484@gmail.com',
@@ -225,7 +328,8 @@ public function sendNotification($userId, $type, $content, $relatedId = null, $i
             'url' => $url
         ]);
         
-        $webPush->sendOneNotification(Subscription::create(json_decode($subscription, true)), $payload);
+        // Passer le tableau décodé à Subscription::create()
+        $webPush->sendOneNotification(Subscription::create($subscriptionArray), $payload);
     
         foreach ($webPush->flush() as $report) {
             if (!$report->isSuccess()) return false;
@@ -246,4 +350,3 @@ public function sendNotification($userId, $type, $content, $relatedId = null, $i
         }
     }
 }
-

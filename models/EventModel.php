@@ -4,13 +4,21 @@ require_once __DIR__ . '/../config/database.php';
 
 // Dans models/EventModel.php
 class EventModel extends DbConnect {
+    protected $request;
     public function findAll() {
         $sql = "SELECT * FROM events";
         $stmt = $this->connection->query($sql); // $this->connection est maintenant disponible
         return $stmt->fetchAll(PDO::FETCH_CLASS, 'Event');
     }
     
-
+    public function __set($name, $value) {
+        // Mapper les propriétés de la base de données aux propriétés de la classe
+        if ($name === 'user_id') {
+            $this->userId = $value;
+        } else {
+            $this->$name = $value;
+        }
+    }
     
     public function find($id) {
         // Vérifier si l'ID est valide
@@ -50,7 +58,12 @@ class EventModel extends DbConnect {
             return $eventId;
         }
         
-
+        public function markAsRead($eventId) {
+            $sql = "UPDATE events SET is_read = 1 WHERE id = :id";
+            $stmt = $this->connection->prepare($sql);
+            return $stmt->execute([':id' => $eventId]);
+        }
+        
     // Méthode pour récupérer tous les événements associés à un utilisateur (organisateur ou participant)
     public function findEventsForUser($userId) {
         // Requête pour récupérer les événements où l'utilisateur est l'organisateur ou un participant
@@ -67,7 +80,47 @@ class EventModel extends DbConnect {
         // Retourner tous les événements associés à l'utilisateur
         return $this->request->fetchAll(PDO::FETCH_ASSOC);
     }
+    /**
+ * Récupère les événements à venir pour un utilisateur spécifique
+ * @param int $userId ID de l'utilisateur
+ * @return array Liste des événements à venir
+ */
+public function getUpcomingEventsForUser($userId) {
+    $sql = "SELECT id, title, description, date, lieu 
+            FROM events 
+            WHERE user_id = :user_id AND date >= NOW() 
+            ORDER BY date ASC 
+            LIMIT 5";
     
+    $stmt = $this->connection->prepare($sql);
+    $stmt->execute([':user_id' => $userId]);
+    
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+/**
+ * Récupère les événements à venir pour plusieurs utilisateurs
+ * @param array $userIds Liste des IDs d'utilisateurs
+ * @return array Liste des événements à venir
+ */
+public function getUpcomingEventsForUsers($userIds) {
+    if (empty($userIds)) {
+        return [];
+    }
+    
+    $placeholders = implode(',', array_fill(0, count($userIds), '?'));
+    
+    $sql = "SELECT id, title, description, date, lieu 
+            FROM events 
+            WHERE user_id IN ($placeholders) AND date >= NOW() 
+            ORDER BY date ASC 
+            LIMIT 5";
+    
+    $stmt = $this->connection->prepare($sql);
+    $stmt->execute($userIds);
+    
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
     
     public function update($id, Event $event) {
         $this->request = $this->connection->prepare("UPDATE events SET title = :title, description = :description, date = :date, lieu = :lieu WHERE id = :id");
@@ -78,6 +131,7 @@ class EventModel extends DbConnect {
         $this->request->bindValue(":lieu", $event->getLieu());
         $this->executeTryCatch();
     }
+    
 
     public function createRecurringEvent(Event $event) {
         $recurrence = $event->getRecurrence();  // daily, weekly, monthly

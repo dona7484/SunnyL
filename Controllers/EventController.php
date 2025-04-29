@@ -1,4 +1,12 @@
 <?php
+
+require_once __DIR__ . '/../models/EventModel.php';
+require_once __DIR__ . '/../Entities/Event.php';
+require_once __DIR__ . '/../Controllers/Controller.php';
+require_once __DIR__ . '/../Controllers/NotificationController.php';
+require_once __DIR__ . '/../models/SeniorModel.php';
+require_once __DIR__ . '/../core/Form.php';
+
 class EventController extends Controller {
    // Dans EventController.php
 public function index() {
@@ -86,9 +94,25 @@ foreach ($seniors as $senior) {
             $event->setTitle($_POST['title']);
             $event->setDescription($_POST['description']);
             $event->setDate($_POST['date']);
-            $event->setLieu($_POST['lieu'] ?? null);
+            $event->setLieu(!empty($_POST['lieu']) ? $_POST['lieu'] : '');
             $event->setUserId($_SESSION['user_id']);
-            $event->setAlertTime($_POST['alertTime'] ?? null);
+            // Calcul de l'heure d'alerte
+$dateEvent = $_POST['date']; // ex: 2025-04-28T14:00
+$alertDelay = $_POST['alertTime']; // ex: '1h', '30m', '15m'
+
+// Convertir la date au bon format timestamp
+$eventTimestamp = strtotime($dateEvent);
+$delayInSeconds = match($alertDelay) {
+    '1h' => 3600,
+    '30m' => 1800,
+    '15m' => 900,
+    default => 0
+};
+$alertTimestamp = $eventTimestamp - $delayInSeconds;
+$alertTime = date('Y-m-d H:i:s', $alertTimestamp);
+
+$event->setAlertTime($alertTime);
+
             $event->setNotificationMessage($_POST['notificationMessage'] ?? 'Nouvel événement');
             $event->setRecurrence($_POST['recurrence'] ?? 'none');
             
@@ -147,8 +171,6 @@ foreach ($seniors as $senior) {
             'addForm' => $addForm
         ]);
     }
-    
-    
     public function markEventAsRead() {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $eventId = $_POST['event_id'];
@@ -214,6 +236,51 @@ $event->setAlertTime($alertTime);
             'eventUpdateForm' => $eventUpdateForm,
             'events' => $event
         ]);
+    }
+}
+
+public function getUpcoming() {
+    header('Content-Type: application/json');
+    
+    if (!isset($_SESSION['user_id'])) {
+        echo json_encode(['error' => 'Utilisateur non connecté']);
+        return;
+    }
+    
+    try {
+        // Obtenir l'ID utilisateur de la session
+        $userId = $_SESSION['user_id'];
+        
+        // Créer une instance du modèle d'événement
+        $eventModel = new EventModel();
+        
+        // Récupérer les événements à venir
+        // Si l'utilisateur est un membre de la famille, récupérer les événements qu'il a créés
+        // ou ceux associés aux seniors qu'il gère
+        if ($_SESSION['role'] === 'familymember') {
+            // Récupérer les ID des seniors associés à ce membre de la famille
+            $seniorModel = new SeniorModel();
+            $seniors = $seniorModel->getSeniorsForFamilyMember($userId);
+            
+            $seniorIds = array_map(function($senior) {
+                return $senior['user_id'];
+            }, $seniors);
+            
+            // Ajouter l'ID du membre de la famille lui-même
+            $seniorIds[] = $userId;
+            
+            // Récupérer les événements pour tous ces utilisateurs
+            $events = $eventModel->getUpcomingEventsForUsers($seniorIds);
+        } else {
+            // Pour les seniors, récupérer uniquement leurs événements
+            $events = $eventModel->getUpcomingEventsForUser($userId);
+        }
+        
+        echo json_encode($events);
+        
+    } catch (Exception $e) {
+        error_log("Erreur lors de la récupération des événements à venir: " . $e->getMessage());
+        echo json_encode(['error' => 'Erreur lors de la récupération des événements']);
     }
 }
 

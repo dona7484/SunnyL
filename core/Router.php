@@ -12,6 +12,27 @@ class Router
 {
     public function routes()
     {
+        if (isset($_GET['controller']) && $_GET['controller'] === 'call') {
+            $action = $_GET['action'] ?? 'start';
+            $controllerName = 'CallController';
+            $controllerPath = __DIR__ . '/../Controllers/' . $controllerName . '.php';
+        
+            if (file_exists($controllerPath)) {
+                require_once $controllerPath;
+            }
+        
+            if (class_exists($controllerName)) {
+                $controller = new $controllerName();
+                if (method_exists($controller, $action)) {
+                    $controller->$action();
+                    exit;
+                }
+            }
+        
+            $_SESSION['error_message'] = "Action d'appel non trouvée";
+            header('Location: index.php?controller=home&action=error');
+            exit;
+        }
         // 🔔 Notifications
         if (isset($_GET['controller']) && $_GET['controller'] === 'notification') {
             $action = $_GET['action'] ?? 'get';
@@ -30,8 +51,8 @@ class Router
                 }
             }
 
-            http_response_code(404);
-            echo json_encode(['error' => 'NotificationController ou action introuvable']);
+            $_SESSION['error_message'] = "Page non trouvée";
+            header('Location: index.php?controller=home&action=error');
             exit;
         }
 

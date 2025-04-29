@@ -7,12 +7,13 @@ class Event {
     private $date;
     private $lieu;
     private $userId;
+    private $user_id;
     private $alert_time;
     private $notification_message;
     private $recurrence; 
     private $is_triggered;
     private $participants;
-
+    private $is_read;
 
     // Getters
     public function getId() {
@@ -58,12 +59,17 @@ class Event {
     public function getParticipants() {
         return $this->participants;
     }
+    public function getIsRead() {
+        return $this->is_read;
+    }
 
     // Setters
     public function setId($id) {
         $this->id = $id;
     }
-
+    public function setIsRead($is_read) {
+        $this->is_read = $is_read;
+    }
     public function setTitle($title) {
         $this->title = $title;
     }
@@ -77,7 +83,8 @@ class Event {
     }
 
     public function setLieu($lieu) {
-        $this->lieu = $lieu;
+        $this->lieu = $lieu === null ? '' : $lieu;
+        return $this;
     }
 
     public function setUserId($userId) {
@@ -103,7 +110,9 @@ class Event {
     public function setParticipants($participants) {
         $this->participants = $participants;
     }
-
+    public function isRead() {
+        return $this->is_read == 1;
+    }
     public function isTriggered() {
         return $this->is_triggered == 1;  // Retourne true si l'événement a été alerté
     }

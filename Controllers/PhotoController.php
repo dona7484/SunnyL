@@ -6,7 +6,14 @@ class PhotoController extends Controller {
         try {
             ini_set('display_errors', 1);
             error_reporting(E_ALL);
-    
+            
+            // Log pour le débogage
+            error_log("Début de l'upload de photo");
+            
+            // Vérifier les données du formulaire
+            error_log("Données du formulaire: " . print_r($_POST, true));
+            error_log("Fichiers: " . print_r($_FILES, true));
+            
             if (session_status() === PHP_SESSION_NONE) {
                 session_start();
             }
@@ -31,42 +38,80 @@ class PhotoController extends Controller {
     
             // Enregistrement du fichier dans le dossier uploads
             $uploadUrl = Photo::saveToStorage($file);
+            
+            // Log pour le débogage
+            error_log("Photo enregistrée avec succès. Chemin: " . $uploadUrl);
     
-// Sauvegarde des informations en base de données avec l'ID du senior et celui du family member
-$photoId = Photo::save($seniorId, $senderId, $uploadUrl, $message);
-
-// Envoi d'une notification au senior avec tous les paramètres requis
-$notifController = new NotificationController();
-$notifId = $notifController->sendNotification(
-    $seniorId, 
-    'photo',
-    'Nouvelle photo reçue : ' . $message, 
-    $photoId,
-    false // Ce paramètre indique que ce n'est pas une notification de confirmation
-);
-
-if ($notifId) {
-    // La notification a été créée avec succès
-    error_log("Notification de photo envoyée - Type: photo, ID: " . $notifId . ", Message: " . $message);
-} else {
-    // Il y a eu un problème lors de l'envoi de la notification
-    error_log("Erreur lors de l'envoi de la notification de photo");
-}
+            // Sauvegarde des informations en base de données
+            $photoId = Photo::save($seniorId, $senderId, $uploadUrl, $message);
     
-                echo json_encode([
-                    "status" => "ok",
-                    "message" => "Photo envoyée avec succès.",
-                    "photoId" => $photoId,
-                    "notifId" => $notifId // ID de la notification créée
-                ]);
-            } catch (Exception $e) {
-                echo json_encode([
-                    "status" => "error",
-                    "message" => $e->getMessage()
-                ]);
-            }
+            // Envoi d'une notification au senior
+            $notifController = new NotificationController();
+            $notifId = $notifController->sendNotification(
+                $seniorId, 
+                'photo',
+                'Nouvelle photo reçue : ' . $message, 
+                $photoId,
+                false
+            );
+    
+            // Rediriger vers la galerie photo au lieu de renvoyer un JSON
+            header('Location: index.php?controller=photo&action=gallery&id=' . $senderId);
+            exit;
+        } catch (Exception $e) {
+            error_log("Erreur lors de l'upload de photo: " . $e->getMessage());
+            // En cas d'erreur, afficher un message d'erreur
+            $_SESSION['error_message'] = $e->getMessage();
+            header('Location: index.php?controller=photo&action=form');
+            exit;
+        }
     }
+    /**
+ * Supprimer une photo
+ */
+public function delete() {
+    header('Content-Type: application/json');
     
+    try {
+        // Récupération des données POST en JSON
+        $data = json_decode(file_get_contents('php://input'), true);
+        $photoId = $data['photoId'] ?? null;
+        
+        if (!$photoId) {
+            throw new Exception("ID de photo manquant");
+        }
+        
+        // Vérifier que l'utilisateur a le droit de supprimer cette photo
+        $photo = Photo::getById($photoId);
+        
+        if (!$photo) {
+            throw new Exception("Photo introuvable");
+        }
+        
+        // Vérifier que l'utilisateur est le propriétaire ou le destinataire de la photo
+        if ($photo['sender_id'] != $_SESSION['user_id'] && $photo['user_id'] != $_SESSION['user_id']) {
+            throw new Exception("Vous n'avez pas l'autorisation de supprimer cette photo");
+        }
+        
+        // Supprimer la photo
+        $result = Photo::delete($photoId);
+        
+        if ($result) {
+            echo json_encode([
+                "status" => "success",
+                "message" => "Photo supprimée avec succès"
+            ]);
+        } else {
+            throw new Exception("Erreur lors de la suppression de la photo");
+        }
+    } catch (Exception $e) {
+        echo json_encode([
+            "status" => "error",
+            "message" => $e->getMessage()
+        ]);
+    }
+}
+
     /**
      * Récupérer toutes les photos pour le diaporama
      */
@@ -104,27 +149,45 @@ if ($notifId) {
      * Marquer une photo comme vue
      */
     public function markViewed() {
+        header('Content-Type: application/json');
+        
         try {
             // Récupération des données POST en JSON
             $data = json_decode(file_get_contents('php://input'), true);
             $photoId = $data['photoId'] ?? null;
+            
             if (!$photoId) {
                 throw new Exception("Photo ID missing.");
             }
-            // On suppose que la méthode markAsViewed($photoId) existe dans le modèle Photo.
+            
+            // Log pour le débogage
+            error_log("Tentative de marquer la photo ID: $photoId comme vue");
+            
+            // Marquer la photo comme vue
             Photo::markAsViewed($photoId);
+            
+            // Mettre à jour également la notification associée
+            $notificationModel = new NotificationModel();
+            $notifications = $notificationModel->getNotificationsByRelatedId($photoId, 'photo');
+            
+            foreach ($notifications as $notification) {
+                $notificationModel->markAsRead($notification['id']);
+                error_log("Notification ID: " . $notification['id'] . " marquée comme lue");
+            }
+            
             echo json_encode([
                 "status" => "ok",
                 "message" => "Photo marquée comme vue."
             ]);
         } catch (Exception $e) {
+            error_log("Erreur lors du marquage de la photo comme vue: " . $e->getMessage());
             echo json_encode([
                 "status" => "error",
                 "message" => $e->getMessage()
             ]);
         }
     }
-
+    
     /**
      * Récupérer les photos d'un utilisateur (pour la galerie)
      */
@@ -152,10 +215,14 @@ if ($notifId) {
             echo "Utilisateur non spécifié.";
             return;
         }
-        // Récupérer les photos de l'utilisateur
+        
+        // Récupérer les photos de l'utilisateur avec leur statut
         $photos = Photo::getByUserId($userId);
-        $GLOBALS['userId'] = $userId;
-        require_once __DIR__ . '/../views/photo/gallery.php';
-    }    
-
+        
+        // Passer les données à la vue
+        $this->render('photo/gallery', [
+            'photos' => $photos,
+            'userId' => $userId
+        ]);
+    }
 }

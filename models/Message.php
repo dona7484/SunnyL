@@ -18,46 +18,90 @@ class Message {
             // Exécution de la requête avec les paramètres
             $stmt->execute([$senderId, $receiverId, $message]);
     
-            // Vérification si l'insertion a réussi
-            return $stmt->rowCount() > 0;
+            // Retourner l'ID du message créé
+            if ($stmt->rowCount() > 0) {
+                return $db->lastInsertId();
+            }
+            return false;
         } catch (Exception $e) {
             error_log("Erreur lors de l'enregistrement du message : " . $e->getMessage());
             return false;
         }
     }
+// Méthode pour récupérer les messages envoyés par un utilisateur
+public static function getSentMessages($userId) {
+    $dbConnect = new DbConnect();
+    $db = $dbConnect->getConnection();
+
+    try {
+        // Log pour le débogage
+        error_log("Récupération des messages envoyés par l'utilisateur ID: $userId");
+        
+        // Préparer la requête pour récupérer les messages envoyés par l'utilisateur
+        $sql = "SELECT m.*, u.name as receiver_name, m.is_read 
+                FROM messages m 
+                JOIN users u ON m.receiver_id = u.id 
+                WHERE m.sender_id = :userId 
+                ORDER BY m.created_at DESC";
+        $stmt = $db->prepare($sql);
+        $stmt->execute(['userId' => $userId]);
+
+        // Récupérer les résultats
+        $messages = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        error_log("Nombre de messages envoyés trouvés: " . count($messages));
+        
+        return $messages;
+    } catch (Exception $e) {
+        error_log("Erreur lors de la récupération des messages envoyés : " . $e->getMessage());
+        return [];
+    }
+}
+
     public static function saveAudio($senderId, $receiverId, $audioData) {
         try {
             $dbConnect = new DbConnect();
             $db = $dbConnect->getConnection();
             
-            $stmt = $db->prepare("INSERT INTO audio_messages (sender_id, receiver_id, audio_data, created_at) VALUES (?, ?, ?, NOW())");
-            $stmt->execute([$senderId, $receiverId, $audioData]);
+            // Utiliser la date et l'heure actuelles
+            $currentDateTime = date('Y-m-d H:i:s');
+            
+            $stmt = $db->prepare("INSERT INTO audio_messages (sender_id, receiver_id, audio_data, created_at) VALUES (?, ?, ?, ?)");
+            $stmt->execute([$senderId, $receiverId, $audioData, $currentDateTime]);
     
             return $db->lastInsertId();
         } catch (Exception $e) {
-                    error_log("Erreur lors de l'enregistrement du message audio : " . $e->getMessage());
-                    return false;
-                }
-            }
-    
+            error_log("Erreur lors de l'enregistrement du message audio : " . $e->getMessage());
+            return false;
+        }
+    }
     
     // Méthode pour récupérer les messages reçus par un utilisateur
     public static function getReceivedMessages($userId) {
         $dbConnect = new DbConnect();
         $db = $dbConnect->getConnection();
-
+    
         try {
+            // Log pour le débogage
+            error_log("Récupération des messages pour l'utilisateur ID: $userId");
+            
             // Préparer la requête pour récupérer les messages reçus par l'utilisateur
-            $sql = "SELECT * FROM messages WHERE receiver_id = :userId ORDER BY created_at DESC";
+            $sql = "SELECT m.*, u.name as sender_name 
+                    FROM messages m 
+                    JOIN users u ON m.sender_id = u.id 
+                    WHERE m.receiver_id = :userId 
+                    ORDER BY m.created_at DESC";
             $stmt = $db->prepare($sql);
             $stmt->execute(['userId' => $userId]);
-
+    
             // Récupérer les résultats
-            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $messages = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            error_log("Nombre de messages trouvés: " . count($messages));
+            
+            return $messages;
         } catch (Exception $e) {
-            echo "Erreur : " . $e->getMessage();
+            error_log("Erreur lors de la récupération des messages : " . $e->getMessage());
             return [];
         }
     }
-}
+}    
 ?>

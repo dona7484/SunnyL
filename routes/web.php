@@ -38,3 +38,22 @@ $router->post('/event/store', [EventController::class, 'store']);
 // 👨‍👩‍👧‍👦 Relations
 $router->get('/relation/create', [RelationController::class, 'create']);
 $router->post('/relation/store', [RelationController::class, 'store']);
+
+// Spotify
+$router->get('/spotify/auth', [SpotifyController::class, 'auth']);
+$router->get('/spotify/callback', [SpotifyController::class, 'authCallback']);
+$router->get('/spotify/player', [SpotifyController::class, 'player']);
+$router->post('/spotify/control', [SpotifyController::class, 'control']);
+
+
+$router->get('/parametres', [ParametresController::class, 'index']);
+$router->post('/parametres/updateProfile', [ParametresController::class, 'updateProfile']);
+$router->post('/parametres/updateNotifications', [ParametresController::class, 'updateNotifications']);
+$router->post('/parametres/updateTheme', [ParametresController::class, 'updateTheme']);
+$router->post('/parametres/updatePassword', [ParametresController::class, 'updatePassword']);
+$router->post('/parametres/removeParent', [ParametresController::class, 'removeParent']);
+$router->post('/relation/add', [RelationController::class, 'add']);
+
+$router->get('/support/faq', [SupportController::class, 'faq']);
+$router->get('/support/contact', [SupportController::class, 'contact']);
+$router->post('/support/contact', [SupportController::class, 'contact']);

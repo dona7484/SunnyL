@@ -37,6 +37,33 @@ class AudioMessage {
             return [];
         }
     }
+    public static function getSentMessages($userId) {
+        $dbConnect = new DbConnect();
+        $db = $dbConnect->getConnection();
+    
+        try {
+            // Log pour le débogage
+            error_log("Récupération des messages audio envoyés par l'utilisateur ID: $userId");
+            
+            // Préparer la requête pour récupérer les messages audio envoyés par l'utilisateur
+            $sql = "SELECT a.*, u.name as receiver_name 
+                    FROM audio_messages a 
+                    JOIN users u ON a.receiver_id = u.id 
+                    WHERE a.sender_id = :userId 
+                    ORDER BY a.created_at DESC";
+            $stmt = $db->prepare($sql);
+            $stmt->execute(['userId' => $userId]);
+    
+            // Récupérer les résultats
+            $messages = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            error_log("Nombre de messages audio envoyés trouvés: " . count($messages));
+            
+            return $messages;
+        } catch (Exception $e) {
+            error_log("Erreur lors de la récupération des messages audio envoyés : " . $e->getMessage());
+            return [];
+        }
+    }
     
     // Marquer un message audio comme lu
     public static function markAsRead($messageId) {

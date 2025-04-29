@@ -67,20 +67,28 @@ class HomeController extends Controller {
         
         $role = $_SESSION['role'] ?? 'familymember';
         $notifications = [];
-    
+        $unreadCount = 0; // Initialiser la variable
+        
         // Récupérer les notifications si l'utilisateur est connecté
         if ($role === 'senior' || $role === 'familymember') {
             $notificationModel = new NotificationModel();
             $notifications = $notificationModel->getUnreadNotifications($_SESSION['user_id']);
+            $unreadCount = $notificationModel->getUnreadCount($_SESSION['user_id']);
+            error_log("Nombre de notifications non lues: $unreadCount"); // Log de débogage
         }
-
+    
         // Rendu du tableau de bord du membre de la famille
         $this->render('home/family_dashboard', [
             'role' => $role,
-            'notifications' => $notifications
+            'notifications' => $notifications,
+            'unreadCount' => $unreadCount
         ]);
     }
-
+    
+    public function error() {
+        $message = $_SESSION['error_message'] ?? 'Erreur inconnue';
+        $this->render('error/generic', ['message' => $message]);
+    }
     // Méthode pour récupérer les membres de la famille associés au senior
     private function getFamilyMembersForSenior($seniorId) {
         $dbConnect = new DbConnect();

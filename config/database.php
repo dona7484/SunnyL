@@ -5,9 +5,15 @@ class DbConnect
     protected $connection;
 
     const SERVER = 'localhost';
-    const USER = 'root';
-    const PASSWORD = '';  // Par défaut sur WAMP, pas de mot de passe
-    const BASE = 'sunnylink';
+    const USER = 'sunnylink_user';
+    const PASSWORD = '';  // Mot de passe vide comme configuré
+    const BASE = 'sunnylink'; 
+
+
+    // const SERVER = 'localhost';
+    // const USER = 'root';
+    // const PASSWORD = '';  // Par défaut sur WAMP, pas de mot de passe
+    // const BASE = 'sunnylink';
 
     public function __construct()
     {
