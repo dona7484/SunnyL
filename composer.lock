@@ -4,6 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
+<<<<<<< HEAD
     "content-hash": "8d3ab626806f4ae36e1790f249c23036",
     "packages": [
         {
@@ -3381,6 +3382,11 @@
             "time": "2024-11-13T13:31:12+00:00"
         },
         {
+=======
+    "content-hash": "e9842188a773bcd13f5babe9edcb44e9",
+    "packages": [
+        {
+>>>>>>> 268861770978b15539867bf256b062b5f5da3e9d
             "name": "twilio/sdk",
             "version": "8.5.0",
             "source": {
@@ -3432,6 +3438,7 @@
                 "source": "https://github.com/twilio/twilio-php/tree/8.5.0"
             },
             "time": "2025-04-07T15:34:07+00:00"
+<<<<<<< HEAD
         },
         {
             "name": "vlucas/phpdotenv",
@@ -3614,6 +3621,8 @@
                 }
             ],
             "time": "2024-07-02T16:35:11+00:00"
+=======
+>>>>>>> 268861770978b15539867bf256b062b5f5da3e9d
         }
     ],
     "packages-dev": [],
