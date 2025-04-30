@@ -115,19 +115,49 @@ public function delete() {
     /**
      * Récupérer toutes les photos pour le diaporama
      */
-    public function getAllForSlideshow() {
-        try {
-            // Ici, vous pouvez adapter la méthode pour récupérer uniquement les photos à afficher dans le slideshow.
-            // Par exemple, on récupère toutes les photos :
-            $photos = Photo::getAll();
-            echo json_encode($photos);
-        } catch (Exception $e) {
-            echo json_encode([
-                "status" => "error",
-                "message" => $e->getMessage()
-            ]);
+    /**
+ * Récupérer toutes les photos pour le diaporama
+ */
+public function getAllForSlideshow() {
+    header('Content-Type: application/json');
+    
+    try {
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
         }
+        
+        if (!isset($_SESSION['user_id'])) {
+            echo json_encode(['error' => 'Utilisateur non connecté']);
+            return;
+        }
+        
+        $userId = $_SESSION['user_id'];
+        $role = $_SESSION['role'] ?? '';
+        
+        // Pour les seniors, récupérer les photos qui leur sont destinées
+        if ($role === 'senior') {
+            $photos = Photo::getByUserId($userId);
+        } else {
+            // Pour les membres de la famille, récupérer les photos qu'ils ont envoyées
+            $photos = Photo::getByUserId($userId);
+        }
+        
+        // Filtrer pour n'inclure que l'URL, le message et la date
+        $slideshowPhotos = array_map(function($photo) {
+            return [
+                'id' => $photo['id'],
+                'url' => $photo['url'],
+                'message' => $photo['message'] ?? '',
+                'created_at' => $photo['created_at']
+            ];
+        }, $photos);
+        
+        echo json_encode($slideshowPhotos);
+    } catch (Exception $e) {
+        error_log("Erreur lors de la récupération des photos pour le diaporama: " . $e->getMessage());
+        echo json_encode(['error' => $e->getMessage()]);
     }
+}
 
     /**
      * Récupérer la dernière photo non vue (pour affichage en modal)

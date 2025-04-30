@@ -39,7 +39,7 @@ $activities = Activity::getRecentActivities($userId, 5);
                 <h2><i class="fas fa-home"></i> Tableau de bord de la famille</h2>
                 <div>
                 <a href="index.php?controller=parametres&action=index" class="btn btn-settings">
-    <img src="/SunnyLink/public/images/settings.png" alt="Paramètres" style="width:28px;vertical-align:middle;">
+    <i class="fa fa-gear fa-2x" style="vertical-align:middle;"></i>
 </a>
                     <a href="index.php?controller=auth&action=logout" class="btn btn-outline-danger">
                         <i class="fas fa-sign-out-alt"></i> Déconnexion
@@ -228,6 +228,7 @@ $activities = Activity::getRecentActivities($userId, 5);
                                 </div>
                             </a>
                         </div>
+
                         
                         <div class="col-md-4 mb-3">
                             <a href="index.php?controller=event&action=add" class="quick-action-card">

@@ -2,51 +2,6 @@
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
-
-
-
-// Utilisez le bon chemin vers le fichier User.php dans le dossier models
-require_once __DIR__ . '/../../models/User.php';
-
-// Traitement du formulaire de connexion
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $email = trim($_POST['email'] ?? '');
-    $password = $_POST['password'] ?? '';
-    $interface = $_POST['interface'] ?? 'default'; // Récupère l'interface choisie Cela vous aidera à savoir si les données du formulaire sont correctement envoyées
-    echo "Données reçues : ";
-    var_dump($_POST);
-    
-    if (empty($email) || empty($password)) {
-        $error = "Veuillez saisir votre email et votre mot de passe.";
-    } else {
-        // Récupérer l'utilisateur via son email
-        $user = User::getByEmail($email);
-        if ($user && password_verify($password, $user['password'])) {
-            // Authentification réussie, on stocke les informations dans la session
-            $_SESSION['user_id'] = $user['id'];
-            $_SESSION['role']    = $user['role'];
-            $_SESSION['name']    = $user['name'];
-            $_SESSION['interface'] = $interface; // Ajout de l'interface dans la session
-            echo "Données reçues : ";
-var_dump($_POST);
-
-            // Redirection selon le rôle et l'interface choisie
-            if ($_SESSION['role'] === 'senior' && $_SESSION['interface'] === 'tablet') {
-                header("Location: index.php?controller=dashboard&action=senior");
-            } elseif ($_SESSION['role'] === 'famille' && $_SESSION['interface'] === 'default') {
-                header("Location: index.php?controller=dashboard&action=family");
-            } else {
-                // Si l'interface tablette est choisie pour un membre de la famille
-                // ou si l'interface ne correspond pas, on redirige vers le tableau de bord par défaut
-                header("Location: index.php?controller=dashboard&action=family");
-            }
-            exit;
-        } else {
-            $error = "Identifiants incorrects.";
-        }
-    }
-}
-
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -95,7 +50,20 @@ var_dump($_POST);
                 <h2>SunnyLink</h2>
             </div>
             
-            <form method="POST" action="">
+            <?php if (isset($_SESSION['success_message'])): ?>
+                <div class="alert alert-success">
+                    <?= htmlspecialchars($_SESSION['success_message']) ?>
+                    <?php unset($_SESSION['success_message']); ?>
+                </div>
+            <?php endif; ?>
+            
+            <?php if (isset($erreur)): ?>
+                <div class="alert alert-danger">
+                    <?= htmlspecialchars($erreur) ?>
+                </div>
+            <?php endif; ?>
+            
+            <form method="POST" action="index.php?controller=auth&action=login">
                 <div class="mb-3">
                     <label for="email" class="form-label">Email</label>
                     <input type="email" class="form-control" id="email" name="email" required>
@@ -118,6 +86,7 @@ var_dump($_POST);
             </div>
         </div>
     </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
-

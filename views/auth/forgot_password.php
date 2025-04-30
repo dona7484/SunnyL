@@ -7,14 +7,14 @@ if (session_status() === PHP_SESSION_NONE) {
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>SunnyLink - Inscription</title>
+    <title>SunnyLink - Mot de passe oublié</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         body {
             background-color: #f5f5f5;
             font-family: 'Arial', sans-serif;
         }
-        .register-container {
+        .forgot-container {
             max-width: 500px;
             margin: 100px auto;
             padding: 30px;
@@ -33,7 +33,7 @@ if (session_status() === PHP_SESSION_NONE) {
             padding: 10px;
             font-weight: bold;
         }
-        .login-link {
+        .back-link {
             text-align: center;
             margin-top: 20px;
         }
@@ -44,10 +44,10 @@ if (session_status() === PHP_SESSION_NONE) {
 </head>
 <body>
     <div class="container">
-        <div class="register-container">
+        <div class="forgot-container">
             <div class="logo">
                 <h2>SunnyLink</h2>
-                <p>Inscription</p>
+                <p>Réinitialisation du mot de passe</p>
             </div>
             
             <?php if (isset($errors) && !empty($errors)): ?>
@@ -60,44 +60,19 @@ if (session_status() === PHP_SESSION_NONE) {
                 </div>
             <?php endif; ?>
             
-            <form method="POST" action="index.php?controller=auth&action=register">
-                <div class="mb-3">
-                    <label for="name" class="form-label">Nom</label>
-                    <input type="text" class="form-control" id="name" name="name" value="<?= htmlspecialchars($name ?? '') ?>" required>
-                </div>
-                
+            <p class="mb-4">Veuillez entrer votre adresse email. Nous vous enverrons un mot de passe temporaire que vous pourrez utiliser pour vous connecter.</p>
+            
+            <form method="POST" action="index.php?controller=auth&action=forgotPassword">
                 <div class="mb-3">
                     <label for="email" class="form-label">Email</label>
                     <input type="email" class="form-control" id="email" name="email" value="<?= htmlspecialchars($email ?? '') ?>" required>
                 </div>
                 
-                <div class="mb-3">
-                    <label for="password" class="form-label">Mot de passe</label>
-                    <input type="password" class="form-control" id="password" name="password" required>
-                    <div class="form-text">Le mot de passe doit contenir au moins 6 caractères.</div>
-                </div>
-                
-                <div class="mb-3">
-                    <label class="form-label">Je suis</label>
-                    <div class="form-check">
-                        <input class="form-check-input" type="radio" name="role" id="role_family" value="famille" checked>
-                        <label class="form-check-label" for="role_family">
-                            Membre de la famille
-                        </label>
-                    </div>
-                    <div class="form-check">
-                        <input class="form-check-input" type="radio" name="role" id="role_senior" value="senior">
-                        <label class="form-check-label" for="role_senior">
-                            Senior
-                        </label>
-                    </div>
-                </div>
-                
-                <button type="submit" class="btn btn-primary">S'inscrire</button>
+                <button type="submit" class="btn btn-primary">Réinitialiser le mot de passe</button>
             </form>
             
-            <div class="login-link">
-                <p>Déjà inscrit ? <a href="index.php?controller=auth&action=login">Se connecter</a></p>
+            <div class="back-link">
+                <p><a href="index.php?controller=auth&action=login">Retour à la connexion</a></p>
             </div>
         </div>
     </div>

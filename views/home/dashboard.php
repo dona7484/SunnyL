@@ -295,6 +295,53 @@ $activities = Activity::getRecentActivities($_SESSION['user_id'], 10);
     .notification-action {
       margin-left: 10px;
     }
+
+    .slideshow-container {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.9);
+        display: none;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
+        opacity: 0;
+        transition: opacity 0.5s ease;
+    }
+    
+    #slideshow-image {
+        max-width: 90%;
+        max-height: 80%;
+        object-fit: contain;
+        box-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
+        border-radius: 8px;
+        transition: opacity 0.3s ease;
+    }
+    
+    #slideshow-close {
+        position: absolute;
+        top: 20px;
+        right: 30px;
+        font-size: 40px;
+        color: white;
+        background: none;
+        border: none;
+        cursor: pointer;
+    }
+    
+    #slideshow-caption {
+        position: absolute;
+        bottom: 50px;
+        left: 0;
+        width: 100%;
+        text-align: center;
+        color: white;
+        font-size: 24px;
+        padding: 10px;
+        background-color: rgba(0, 0, 0, 0.5);
+    }
   </style>
 </head>
 <body>
@@ -304,9 +351,14 @@ $activities = Activity::getRecentActivities($_SESSION['user_id'], 10);
     <span>SunnyLink</span>
   </div>
   <button id="enable-sound" class="btn btn-primary">Activer les sons de notification</button>
-  <a href="index.php?controller=parametres&action=senior" class="btn btn-settings">
-    <img src="/SunnyLink/public/images/icone-parametres.png" alt="Paramètres" style="width:28px;vertical-align:middle;"> Mon compte
+  <div class="d-flex align-items-center justify-content-end" style="gap: 16px;">
+  <a href="index.php?controller=parametres&action=index" class="btn btn-settings">
+    <i class="fa fa-gear fa-2x text-dark" style="vertical-align: middle;"></i>
 </a>
+    <a href="index.php?controller=auth&action=logout" class="btn btn-outline-danger">
+        <i class="fas fa-sign-out-alt"></i> Déconnexion
+    </a>
+</div>
 
 </div>
 
@@ -463,7 +515,11 @@ $activities = Activity::getRecentActivities($_SESSION['user_id'], 10);
     <img src="images/check-button.png" alt="Valider" style="width: 35px; height: 35px;">
   </button>
 </div>
-
+<div id="slideshow-container" class="slideshow-container">
+    <img id="slideshow-image" src="" alt="Photo du diaporama">
+    <button id="slideshow-close">&times;</button>
+    <div id="slideshow-caption"></div>
+</div>
 <!-- Audio préchargé pour les notifications -->
 <audio id="notification-sound" preload="auto" style="display:none;">
   <source src="audio/notif-sound.mp3" type="audio/mpeg">
@@ -724,5 +780,6 @@ $activities = Activity::getRecentActivities($_SESSION['user_id'], 10);
     }
 </script>
 
+<script src="/SunnyLink/public/js/slideshow.js"></script>
 </body>
 </html>

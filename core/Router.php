@@ -3,15 +3,13 @@ $controller = isset($_GET['controller']) ? $_GET['controller'] : null;
 
 if (!isset($_GET['controller'])) {
     require_once __DIR__ . '/../views/home/index.php';
-
-
     exit;
 }
 
-class Router
-{
+class Router {
     public function routes()
     {
+        // 📞 Appels vidéo
         if (isset($_GET['controller']) && $_GET['controller'] === 'call') {
             $action = $_GET['action'] ?? 'start';
             $controllerName = 'CallController';
@@ -33,6 +31,7 @@ class Router
             header('Location: index.php?controller=home&action=error');
             exit;
         }
+        
         // 🔔 Notifications
         if (isset($_GET['controller']) && $_GET['controller'] === 'notification') {
             $action = $_GET['action'] ?? 'get';
@@ -87,6 +86,10 @@ class Router
         $controllerPath = __DIR__ . '/../Controllers/' . $controllerName . '.php';
         if (file_exists($controllerPath)) {
             require_once $controllerPath;
+        } else {
+            http_response_code(404);
+            echo "Erreur 404 : Contrôleur '$controllerName' introuvable.";
+            exit;
         }
 
         if (class_exists($controllerName)) {
@@ -102,13 +105,5 @@ class Router
             http_response_code(404);
             echo "Erreur 404 : Contrôleur '$controllerName' introuvable.";
         }
-
-        // Pour afficher la page d’envoi
-if ($_GET['controller'] === 'photo' && $_GET['action'] === 'form') {
-    require_once __DIR__ . '/../views/photo/upload.php';
-
-    exit;
-}
-
     }
 }

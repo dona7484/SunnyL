@@ -37,10 +37,10 @@ class User {
      * @param string $name
      * @param string $email
      * @param string $password En clair (sera haché)
-     * @param string $role Par défaut 'familymember' (peut être 'senior' selon le cas)
+     * @param string $role Par défaut 'famille' (peut être 'senior' selon le cas)
      * @return bool Retourne true si l'inscription réussit, false si l'email est déjà utilisé ou en cas d'erreur.
      */
-    public static function register($name, $email, $password, $role = 'familymember') {
+    public static function register($name, $email, $password, $role = 'famille') {
         $dbConnect = new DbConnect();
         $db = $dbConnect->getConnection();
         // Vérifier si l'email existe déjà
@@ -49,6 +49,17 @@ class User {
         if ($stmt->rowCount() > 0) {
             return false;
         }
+        
+        // Si le rôle est 'familymember', le convertir en 'famille' pour correspondre à l'énumération de la base de données
+        if ($role === 'familymember') {
+            $role = 'famille';
+        }
+        
+        // Vérifier que le rôle est valide (soit 'famille' soit 'senior')
+        if ($role !== 'famille' && $role !== 'senior') {
+            $role = 'famille'; // Valeur par défaut si le rôle est invalide
+        }
+        
         $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
         $stmt = $db->prepare("INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)");
         return $stmt->execute([$name, $email, $hashedPassword, $role]);
