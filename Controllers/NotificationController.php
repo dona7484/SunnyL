@@ -93,52 +93,73 @@ class NotificationController extends Controller {
         }
     }
     
-    // Méthode pour envoyer une notification
-    public function sendNotification($userId, $type, $content, $relatedId = null, $isConfirmation = false) {
-        try {
-            // Log pour le débogage
-            error_log("Tentative d'envoi de notification - Type: $type, UserId: $userId, Content: $content, RelatedId: $relatedId");
+ // Méthode pour envoyer une notification
+public function sendNotification($userId, $type, $content, $relatedId = null, $isConfirmation = false) {
+    try {
+        // Log pour le débogage
+        error_log("Tentative d'envoi de notification - Type: $type, UserId: $userId, Content: $content, RelatedId: $relatedId");
+        
+        // Pour les messages audio, forcer le type à 'audio'
+        if ($type === 'audio' || strpos(strtolower($content), 'audio') !== false) {
+            $type = 'audio';
+        }
+        
+        // Si c'est un message, récupérer le contenu réel du message
+        if ($type === 'message' && $relatedId) {
+            $db = (new DbConnect())->getConnection();
+            $stmt = $db->prepare("SELECT message FROM messages WHERE id = ?");
+            $stmt->execute([$relatedId]);
+            $messageContent = $stmt->fetchColumn();
             
-            // Pour les messages audio, forcer le type à 'audio'
-            if ($type === 'audio' || strpos(strtolower($content), 'audio') !== false) {
-                $type = 'audio';
+            if ($messageContent) {
+                // Inclure le début du message dans la notification
+                $truncatedMessage = substr($messageContent, 0, 50) . (strlen($messageContent) > 50 ? '...' : '');
+                $content = $content . ': ' . $truncatedMessage;
+            }
+        }
+        
+        // De même pour les messages audio, ajouter une description
+        if ($type === 'audio' && $relatedId) {
+            // Pour les messages audio, on ne peut pas récupérer le texte
+            // Mais on peut améliorer le contenu de la notification
+            $content = $content . '. Appuyez pour écouter le message audio.';
+        }
+        
+        $notifId = Notification::create($userId, $type, $content, $relatedId, $isConfirmation);
+        
+        if ($notifId) {
+            error_log("Notification créée avec succès - ID: $notifId, Type: $type, UserId: $userId");
+            
+            // URL de redirection
+            $url = 'index.php?controller=home&action=dashboard'; // URL par défaut
+            if ($type === 'message' || $type === 'audio') {
+                $url = 'index.php?controller=message&action=received';
+            } elseif ($type === 'photo') {
+                $url = 'index.php?controller=photo&action=gallery';
+            } elseif ($type === 'event') {
+                $url = 'index.php?controller=event&action=index';
+            } elseif ($type === 'video_call') {
+                // Amélioration de la redirection pour les appels vidéo
+                $url = 'index.php?controller=call&action=receive&from=' . $_SESSION['user_id'] . '&room=' . $relatedId;
+                
+                // Envoyer une notification WebSocket en plus de la notification standard
+                $this->sendWebSocketNotification($userId, 'video_call', $content, $relatedId);
             }
             
-            $notifId = Notification::create($userId, $type, $content, $relatedId, $isConfirmation);
+            // Envoyer une notification push
+            $pushResult = $this->sendPush($userId, $type, 'Nouvelle notification', $content, $url);
+            error_log("Résultat de l'envoi push: " . ($pushResult ? "Succès" : "Échec"));
             
-            if ($notifId) {
-                error_log("Notification créée avec succès - ID: $notifId, Type: $type, UserId: $userId");
-                
-                // URL de redirection
-                $url = 'index.php?controller=home&action=dashboard'; // URL par défaut
-                if ($type === 'message' || $type === 'audio') {
-                    $url = 'index.php?controller=message&action=received';
-                } elseif ($type === 'photo') {
-                    $url = 'index.php?controller=photo&action=gallery';
-                } elseif ($type === 'event') {
-                    $url = 'index.php?controller=event&action=index';
-                } elseif ($type === 'video_call') {
-                    // Amélioration de la redirection pour les appels vidéo
-                    $url = 'index.php?controller=call&action=receive&from=' . $_SESSION['user_id'] . '&room=' . $relatedId;
-                    
-                    // Envoyer une notification WebSocket en plus de la notification standard
-                    $this->sendWebSocketNotification($userId, 'video_call', $content, $relatedId);
-                }
-                
-                // Envoyer une notification push
-                $pushResult = $this->sendPush($userId, $type, 'Nouvelle notification', $content, $url);
-                error_log("Résultat de l'envoi push: " . ($pushResult ? "Succès" : "Échec"));
-                
-                return $notifId;
-            } else {
-                error_log("Échec de la création de notification - Type: $type, UserId: $userId");
-                return false;
-            }
-        } catch (Exception $e) {
-            error_log("Erreur lors de l'envoi de la notification : " . $e->getMessage());
+            return $notifId;
+        } else {
+            error_log("Échec de la création de notification - Type: $type, UserId: $userId");
             return false;
         }
+    } catch (Exception $e) {
+        error_log("Erreur lors de l'envoi de la notification : " . $e->getMessage());
+        return false;
     }
+}
     
     private function sendWebSocketNotification($userId, $type, $content, $relatedId = null) {
         try {

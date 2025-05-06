@@ -390,20 +390,74 @@ function handleNotificationClick() {
         bubble.classList.remove('notification-show');
         bubble.classList.add('notification-hide');
         
-        // Cacher la bulle après l'animation
-        setTimeout(() => {
-            bubble.style.display = 'none';
-            bubble.classList.remove('notification-hide');
-            
-            // Marquer la notification comme lue sur le serveur
-            markNotificationAsRead(notifId, type, relatedId);
-        }, 500);
+        // Pour les messages et audio, récupérer le contenu complet avant de marquer comme lu
+        if ((type === 'message' || type === 'audio') && relatedId) {
+            // Récupérer le contenu du message à partir de l'API
+            fetch(`index.php?controller=message&action=getContent&id=${relatedId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.content) {
+                        // Lire le contenu complet du message
+                        speakMessage(data.content);
+                        console.log("Lecture vocale du message:", data.content);
+                    }
+                    
+                    // Cacher la bulle après l'animation
+                    setTimeout(() => {
+                        bubble.style.display = 'none';
+                        bubble.classList.remove('notification-hide');
+                        
+                        // Marquer la notification comme lue sur le serveur après lecture
+                        markNotificationAsRead(notifId, type, relatedId);
+                    }, 500);
+                })
+                .catch(error => {
+                    console.error("Erreur lors de la récupération du contenu du message:", error);
+                    
+                    // Cacher la bulle et marquer comme lu même en cas d'erreur
+                    setTimeout(() => {
+                        bubble.style.display = 'none';
+                        bubble.classList.remove('notification-hide');
+                        markNotificationAsRead(notifId, type, relatedId);
+                    }, 500);
+                });
+        } else {
+            // Pour les autres types de notifications, comportement normal
+            setTimeout(() => {
+                bubble.style.display = 'none';
+                bubble.classList.remove('notification-hide');
+                
+                // Marquer la notification comme lue sur le serveur
+                markNotificationAsRead(notifId, type, relatedId);
+            }, 500);
+        }
     } else {
-        // Si la bulle n'existe pas, marquer directement comme lue
-        markNotificationAsRead(notifId, type, relatedId);
+        // Si la bulle n'existe pas, vérifier quand même le contenu pour messages et audio
+        if ((type === 'message' || type === 'audio') && relatedId) {
+            // Récupérer le contenu du message à partir de l'API
+            fetch(`index.php?controller=message&action=getContent&id=${relatedId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.content) {
+                        // Lire le contenu complet du message
+                        speakMessage(data.content);
+                        console.log("Lecture vocale du message:", data.content);
+                    }
+                    
+                    // Marquer comme lu après lecture
+                    markNotificationAsRead(notifId, type, relatedId);
+                })
+                .catch(error => {
+                    console.error("Erreur lors de la récupération du contenu du message:", error);
+                    // Marquer comme lu même en cas d'erreur
+                    markNotificationAsRead(notifId, type, relatedId);
+                });
+        } else {
+            // Pour les autres types de notifications, marquer directement comme lue
+            markNotificationAsRead(notifId, type, relatedId);
+        }
     }
 }
-
 // Marquer une notification comme lue sur le serveur
 function markNotificationAsRead(notifId, type, relatedId) {
     if (!notifId) {

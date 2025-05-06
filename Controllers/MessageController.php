@@ -8,6 +8,47 @@ require_once __DIR__ . '/../models/User.php';
 
 class MessageController extends Controller {
     
+    // Dans MessageController.php
+public function getContent() {
+    header('Content-Type: application/json');
+    
+    try {
+        $messageId = $_GET['id'] ?? null;
+        
+        if (!$messageId) {
+            throw new Exception("ID de message manquant");
+        }
+        
+        // Déterminer si c'est un message texte ou audio
+        $db = (new DbConnect())->getConnection();
+        $checkStmt = $db->prepare("SELECT COUNT(*) FROM messages WHERE id = ?");
+        $checkStmt->execute([$messageId]);
+        $isTextMessage = $checkStmt->fetchColumn() > 0;
+        
+        if ($isTextMessage) {
+            // Récupérer le contenu d'un message texte
+            $stmt = $db->prepare("SELECT message FROM messages WHERE id = ?");
+            $stmt->execute([$messageId]);
+            $content = $stmt->fetchColumn();
+            
+            echo json_encode(['content' => $content]);
+        } else {
+            // C'est peut-être un message audio
+            $checkStmt = $db->prepare("SELECT COUNT(*) FROM audio_messages WHERE id = ?");
+            $checkStmt->execute([$messageId]);
+            $isAudioMessage = $checkStmt->fetchColumn() > 0;
+            
+            if ($isAudioMessage) {
+                echo json_encode(['content' => "Un message audio a été reçu. Veuillez l'écouter."]);
+            } else {
+                throw new Exception("Message introuvable");
+            }
+        }
+    } catch (Exception $e) {
+        echo json_encode(['error' => $e->getMessage()]);
+    }
+}
+
     public function send() {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Détecter si c'est une requête AJAX (JSON) ou un formulaire classique
@@ -294,7 +335,57 @@ class MessageController extends Controller {
             }
         }
     }
+    /**
+ * Supprimer un message audio
+ */
+public function deleteAudio() {
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
     
+    // Vérifier que l'utilisateur est connecté
+    if (!isset($_SESSION['user_id'])) {
+        header("Location: index.php?controller=auth&action=login");
+        exit;
+    }
+    
+    // Récupérer l'ID du message audio à supprimer
+    $id = isset($_GET['id']) ? intval($_GET['id']) : null;
+    
+    if (!$id) {
+        $_SESSION['error_message'] = "ID de message audio manquant.";
+        header('Location: index.php?controller=message&action=sent');
+        exit;
+    }
+    
+    try {
+        // Vérifier que le message existe et appartient à l'utilisateur courant
+        require_once __DIR__ . '/../models/AudioMessage.php';
+        $message = AudioMessage::getById($id);
+        
+        if (!$message) {
+            throw new Exception("Message audio introuvable.");
+        }
+        
+        // Vérifier que l'utilisateur est l'expéditeur du message
+        if ($message->sender_id != $_SESSION['user_id']) {
+            throw new Exception("Vous n'êtes pas autorisé à supprimer ce message.");
+        }
+        
+        // Supprimer le message
+        AudioMessage::delete($id);
+        
+        // Rediriger avec un message de succès
+        $_SESSION['success_message'] = "Message audio supprimé avec succès.";
+        header('Location: index.php?controller=message&action=sent');
+        exit;
+    } catch (Exception $e) {
+        // En cas d'erreur, rediriger avec un message d'erreur
+        $_SESSION['error_message'] = $e->getMessage();
+        header('Location: index.php?controller=message&action=sent');
+        exit;
+    }
+}
     public function markAsRead() {
         header('Content-Type: application/json');
         

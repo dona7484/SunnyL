@@ -101,35 +101,41 @@
   
   <!-- Onglet message audio -->
   <div class="tab-pane fade" id="audio-message">
-    <div class="audio-recorder-container">
-      <div class="form-group mb-3">
-        <label for="audio_receiver_id">Destinataire</label>
-        <select class="form-select" id="audio_receiver_id" required>
-          <option value="">Choisir un destinataire</option>
-          <?php foreach ($seniors as $senior): ?>
-            <option value="<?= $senior['user_id'] ?>"><?= htmlspecialchars($senior['name']) ?></option>
-          <?php endforeach; ?>
-        </select>
-      </div>
-      
-      <div class="audio-controls mb-3">
-        <button id="startRecording" class="btn btn-danger">
-          <i class="fas fa-microphone"></i> Commencer l'enregistrement
-        </button>
-        <button id="stopRecording" class="btn btn-secondary" disabled>
-          <i class="fas fa-stop"></i> Arrêter l'enregistrement
-        </button>
-      </div>
-      
-      <div class="audio-preview mb-3" style="display: none;">
-        <p>Aperçu de l'enregistrement :</p>
-        <audio id="audioPreview" controls></audio>
-      </div>
-      
-      <button id="sendAudio" class="btn btn-primary" disabled>Envoyer le message audio</button>
+  <div class="audio-recorder-container">
+    <div class="form-group mb-3">
+      <label for="audio_receiver_id">Destinataire</label>
+      <select class="form-select" id="audio_receiver_id" required>
+        <option value="">Choisir un destinataire</option>
+        <?php foreach ($seniors as $senior): ?>
+          <option value="<?= $senior['user_id'] ?>"><?= htmlspecialchars($senior['name']) ?></option>
+        <?php endforeach; ?>
+      </select>
     </div>
+    
+    <div class="audio-status alert alert-info mb-3" style="display:none;">
+      <span id="recordingStatus">En attente de l'enregistrement...</span>
+      <div id="audioWaveform" class="mt-2"></div>
+      <div id="recordingTimer" class="mt-1">00:00</div>
+    </div>
+    
+    <div class="audio-controls mb-3">
+      <button id="startRecording" class="btn btn-danger">
+        <i class="fas fa-microphone"></i> Commencer l'enregistrement
+      </button>
+      <button id="stopRecording" class="btn btn-secondary" disabled>
+        <i class="fas fa-stop"></i> Arrêter l'enregistrement
+      </button>
+    </div>
+    
+    <div class="audio-preview mb-3" style="display: none;">
+      <p>Aperçu de l'enregistrement :</p>
+      <audio id="audioPreview" controls></audio>
+    </div>
+    
+    <button id="sendAudio" class="btn btn-primary" disabled>Envoyer le message audio</button>
   </div>
 </div>
+
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
@@ -446,6 +452,164 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
     }
+});
+</script>
+<script src="js/audio-recorder.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Éléments DOM pour l'enregistrement audio
+    const startButton = document.getElementById('startRecording');
+    const stopButton = document.getElementById('stopRecording');
+    const sendButton = document.getElementById('sendAudio');
+    const statusElement = document.getElementById('recordingStatus');
+    const timerElement = document.getElementById('recordingTimer');
+    const previewContainer = document.querySelector('.audio-preview');
+    const audioPreview = document.getElementById('audioPreview');
+    const statusContainer = document.querySelector('.audio-status');
+    
+    // Variables pour l'enregistrement
+    let audioRecorder = null;
+    let audioBlob = null;
+    let recordingInterval = null;
+    let recordingStartTime = 0;
+    
+    // Vérifier si l'enregistrement audio est supporté
+    if (!AudioRecorder.isSupported()) {
+        startButton.disabled = true;
+        startButton.textContent = "Enregistrement audio non supporté par votre navigateur";
+        console.error("L'enregistrement audio n'est pas pris en charge par ce navigateur");
+        return;
+    }
+    
+    // Initialiser l'enregistreur audio
+    audioRecorder = new AudioRecorder({
+        onStart: function() {
+            console.log("Enregistrement démarré");
+            // Mettre à jour l'UI
+            startButton.disabled = true;
+            stopButton.disabled = false;
+            statusElement.textContent = "Enregistrement en cours...";
+            statusContainer.style.display = 'block';
+            previewContainer.style.display = 'none';
+            sendButton.disabled = true;
+            
+            // Démarrer le timer
+            recordingStartTime = Date.now();
+            recordingInterval = setInterval(updateRecordingTime, 1000);
+        },
+        onStop: function(blob) {
+            console.log("Enregistrement terminé, taille:", blob.size);
+            audioBlob = blob;
+            
+            // Arrêter le timer
+            clearInterval(recordingInterval);
+            
+            // Mettre à jour l'UI
+            startButton.disabled = false;
+            stopButton.disabled = true;
+            statusElement.textContent = "Enregistrement terminé";
+            
+            // Créer l'URL pour la prévisualisation
+            const audioURL = URL.createObjectURL(blob);
+            audioPreview.src = audioURL;
+            previewContainer.style.display = 'block';
+            
+            // Activer le bouton d'envoi
+            sendButton.disabled = false;
+        },
+        onError: function(error) {
+            console.error("Erreur lors de l'enregistrement:", error);
+            statusElement.textContent = "Erreur : " + (error.message || "Problème d'accès au microphone");
+            statusElement.style.color = "red";
+            statusContainer.style.display = 'block';
+            
+            // Réinitialiser l'UI
+            startButton.disabled = false;
+            stopButton.disabled = true;
+            
+            // Arrêter le timer si en cours
+            if (recordingInterval) {
+                clearInterval(recordingInterval);
+            }
+        }
+    });
+    
+    // Fonction pour mettre à jour le timer d'enregistrement
+    function updateRecordingTime() {
+        const elapsedTime = Math.floor((Date.now() - recordingStartTime) / 1000);
+        const minutes = Math.floor(elapsedTime / 60).toString().padStart(2, '0');
+        const seconds = (elapsedTime % 60).toString().padStart(2, '0');
+        timerElement.textContent = `${minutes}:${seconds}`;
+    }
+    
+    // Gestionnaires d'événements
+    startButton.addEventListener('click', function() {
+        audioRecorder.start();
+    });
+    
+    stopButton.addEventListener('click', function() {
+        audioRecorder.stop();
+    });
+    
+    sendButton.addEventListener('click', function() {
+        if (!audioBlob) {
+            alert("Aucun enregistrement disponible");
+            return;
+        }
+        
+        const receiverId = document.getElementById('audio_receiver_id').value;
+        if (!receiverId) {
+            alert("Veuillez sélectionner un destinataire");
+            return;
+        }
+        
+        // Convertir le Blob en base64 pour l'envoi
+        const reader = new FileReader();
+        reader.readAsDataURL(audioBlob);
+        reader.onloadend = function() {
+            const base64Audio = reader.result.split(',')[1]; // Enlever le préfixe "data:audio/webm;base64,"
+            
+            // Afficher un message d'envoi en cours
+            sendButton.disabled = true;
+            sendButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Envoi en cours...';
+            
+            // Envoyer via fetch API
+            fetch('index.php?controller=message&action=sendAudio', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    receiver_id: receiverId,
+                    audio_data: base64Audio
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    // Réinitialiser l'interface
+                    previewContainer.style.display = 'none';
+                    statusContainer.style.display = 'none';
+                    sendButton.disabled = false;
+                    sendButton.innerHTML = 'Envoyer le message audio';
+                    
+                    // Afficher un message de succès
+                    alert("Message audio envoyé avec succès !");
+                    
+                    // Rediriger si nécessaire
+                    window.location.href = 'index.php?controller=message&action=sent';
+                } else {
+                    throw new Error(data.message || "Erreur lors de l'envoi du message audio");
+                }
+            })
+            .catch(error => {
+                console.error("Erreur:", error);
+                alert("Erreur lors de l'envoi du message audio: " + error.message);
+                sendButton.disabled = false;
+                sendButton.innerHTML = 'Envoyer le message audio';
+            });
+        };
+    });
 });
 </script>
 </body>

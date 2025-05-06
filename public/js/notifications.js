@@ -228,13 +228,18 @@ function playNotificationSound() {
 // Fonction pour lire le message à voix haute
 function speakMessage(message) {
     if ('speechSynthesis' in window) {
+        // Annuler toute synthèse vocale en cours
+        window.speechSynthesis.cancel();
+        
         const utterance = new SpeechSynthesisUtterance(message);
         utterance.lang = 'fr-FR';
+        utterance.rate = 0.9; // Un peu plus lent pour la clarté
         utterance.volume = 1;
-        utterance.rate = 0.9;
-        utterance.pitch = 1;
         
         window.speechSynthesis.speak(utterance);
+        console.log("Lecture vocale du message: " + message);
+    } else {
+        console.warn("La synthèse vocale n'est pas prise en charge par ce navigateur");
     }
 }
 
