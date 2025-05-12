@@ -6,6 +6,29 @@
     <title>Galerie Photos - SunnyLink</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
+          .back-dashboard-btn {
+    display: inline-flex;
+    align-items: center;
+    background-color: #4a4a4a;
+    color: white;
+    padding: 12px 20px;
+    border-radius: 50px;
+    text-decoration: none;
+    font-weight: 500;
+    transition: background-color 0.3s ease;
+    border: none;
+    margin-bottom: 20px;
+}
+
+.back-dashboard-btn:hover {
+    background-color: #333333;
+    color: white;
+    text-decoration: none;
+}
+
+.back-dashboard-btn i {
+    margin-right: 8px;
+}
         .gallery-container {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
@@ -180,9 +203,9 @@
     </style>
 </head>
 <body>
-<a href="index.php?controller=home&action=dashboard" class="back-button">
-            <i class="fas fa-arrow-left"></i> Retour au tableau de bord
-        </a>
+<a href="index.php?controller=home&action=<?= ($_SESSION['role'] === 'senior') ? 'dashboard' : 'family_dashboard' ?>" class="back-dashboard-btn">
+    <i class="fas fa-arrow-left"></i> Retour au tableau de bord
+</a>
     <div class="container mt-4">
         <h1 class="text-center mb-4">Galerie Photos</h1>
         

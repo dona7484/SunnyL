@@ -169,7 +169,29 @@ if (!isset($_SESSION['user_id'])) {
             background-color: #333;
             color: white;
         }
-        
+        .back-dashboard-btn {
+    display: inline-flex;
+    align-items: center;
+    background-color: #4a4a4a;
+    color: white;
+    padding: 12px 20px;
+    border-radius: 50px;
+    text-decoration: none;
+    font-weight: 500;
+    transition: background-color 0.3s ease;
+    border: none;
+    margin-bottom: 20px;
+}
+
+.back-dashboard-btn:hover {
+    background-color: #333333;
+    color: white;
+    text-decoration: none;
+}
+
+.back-dashboard-btn i {
+    margin-right: 8px;
+}
         .empty-state {
             text-align: center;
             padding: 50px 20px;
@@ -193,9 +215,9 @@ if (!isset($_SESSION['user_id'])) {
 </head>
 <body>
     <div class="container">
-        <a href="index.php?controller=home&action=dashboard" class="back-button">
-            <i class="fas fa-arrow-left"></i> Retour au tableau de bord
-        </a>
+        <a href="index.php?controller=home&action=<?= ($_SESSION['role'] === 'senior') ? 'dashboard' : 'family_dashboard' ?>" class="back-button">
+    <i class="fas fa-arrow-left"></i> Retour au tableau de bord
+</a>
         
         <h1 class="page-title">Mes Messages</h1>
         <ul class="nav nav-tabs">
@@ -206,6 +228,13 @@ if (!isset($_SESSION['user_id'])) {
         <a class="nav-link" href="index.php?controller=message&action=sent">Messages envoyés</a>
     </li>
 </ul>
+<div class="row mb-4">
+    <div class="col-12 text-end">
+        <a href="index.php?controller=message&action=send" class="btn btn-primary">
+            <i class="fas fa-pen"></i> Écrire un message
+        </a>
+    </div>
+</div>
         <?php if (empty($messages) && empty($audioMessages)): ?>
             <div class="empty-state">
                 <div class="empty-state-icon">

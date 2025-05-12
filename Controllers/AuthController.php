@@ -1,26 +1,51 @@
 <?php
-require_once __DIR__ . '/../config/database.php';
-require_once __DIR__ . '/../models/User.php';
+/**
+ * Contrôleur d'authentification
+ * 
+ * Gère toutes les fonctionnalités liées à l'authentification des utilisateurs :
+ * connexion, déconnexion, inscription et récupération de mot de passe.
+ */
 
+// Inclure les dépendances nécessaires
+require_once __DIR__ . '/../config/database.php';  // Configuration de la base de données
+require_once __DIR__ . '/../models/User.php';      // Modèle utilisateur
+
+/**
+ * Classe AuthController
+ * 
+ * Gère l'authentification et les opérations liées aux comptes utilisateurs
+ */
 class AuthController {
+    /**
+     * Méthode de connexion
+     * 
+     * Gère à la fois l'affichage du formulaire de connexion et le traitement de la soumission
+     */
     public function login() {
+        // Vérifier si le formulaire a été soumis
         if ($_SERVER["REQUEST_METHOD"] == "POST") {
+            // Récupération des données du formulaire
             $email = $_POST['email'];
             $password = $_POST['password'];
-            $interface = $_POST['interface'] ?? 'default'; // Interface choisie
+            $interface = $_POST['interface'] ?? 'default'; // Interface choisie (par défaut 'default')
     
             // Connexion à la base de données
             $db = new DbConnect();
             $connection = $db->getConnection();
+            
+            // Préparation et exécution de la requête pour trouver l'utilisateur
             $query = $connection->prepare("SELECT * FROM users WHERE email = :email");
             $query->execute(['email' => $email]);
-            $query->setFetchMode(PDO::FETCH_OBJ);
+            $query->setFetchMode(PDO::FETCH_OBJ);  // Résultats sous forme d'objets
             $user = $query->fetch();
+            
+            // Vérification des identifiants
             if ($user && password_verify($password, $user->password)) {
+                // Initialisation des variables de session
                 $_SESSION['user_id'] = $user->id;
                 $_SESSION['name'] = $user->name;
-                $_SESSION['role'] = $user->role; // Cette ligne doit être présente
-                session_regenerate_id(true);
+                $_SESSION['role'] = $user->role; // Stockage du rôle utilisateur
+                session_regenerate_id(true);     // Sécurité : régénère l'ID de session pour prévenir la fixation de session
             
                 // Redirection en fonction du rôle
                 if ($_SESSION['role'] === 'senior') {
@@ -32,6 +57,7 @@ class AuthController {
             }
             
                 // Si l'interface est 'tablet' et que le rôle est famille, on redirige vers un tableau de bord senior
+                // (Fonctionnalité spéciale pour tablette : un membre de famille peut voir l'interface senior)
                 if ($interface === 'tablet' && $user->role === 'famille') {
                     $seniorId = $this->getSeniorForFamilyMember($user->id);
                     if ($seniorId) {
@@ -48,11 +74,21 @@ class AuthController {
                 }
                 exit;
             } else {
+                // Connexion échouée : préparation du message d'erreur
                 $erreur = "Identifiants incorrects.";
                 $this->render('auth/login', ['erreur' => $erreur]);
             }
     }
     
+    /**
+     * Récupère l'ID du senior associé à un membre de famille
+     * 
+     * Cette méthode permet de trouver le senior lié à un membre de famille
+     * pour la fonctionnalité d'interface tablette
+     * 
+     * @param int $familyMemberId ID du membre de famille
+     * @return int|null ID du senior ou null si non trouvé
+     */
     public function getSeniorForFamilyMember($familyMemberId) {
         $query = $this->connection->prepare("SELECT senior_id FROM family_members WHERE family_member_id = :id");
         $query->execute(['id' => $familyMemberId]);
@@ -60,29 +96,53 @@ class AuthController {
         return $result ? $result['senior_id'] : null;
     }
 
+    /**
+     * Méthode d'affichage des vues
+     * 
+     * @param string $view Chemin de la vue à afficher
+     * @param array $data Données à passer à la vue
+     */
     public function render($view, $data = [])
     {
-        extract($data);
-        include "../views/{$view}.php";
+        extract($data);  // Extrait les données pour qu'elles soient disponibles dans la vue
+        include "../views/{$view}.php";  // Inclusion du fichier de vue
     }
 
+    /**
+     * Méthode de déconnexion
+     * 
+     * Détruit la session et redirige vers la page de connexion
+     */
     public function logout()
     {
+        // Démarrer la session si elle n'est pas déjà active
         if (session_status() === PHP_SESSION_NONE) {
             session_start();
         }
+        
+        // Suppression des variables de session
         session_unset();
+        
+        // Destruction de la session
         session_destroy();
+        
+        // Suppression du cookie de session
         setcookie(session_name(), '', time() - 3600, '/');
+        
+        // Redirection vers la page de connexion
         header('Location: index.php?controller=auth&action=login');
         exit();
     }
 
-    // Register method
+    /**
+     * Méthode d'inscription
+     * 
+     * Gère l'inscription d'un nouvel utilisateur
+     */
     public function register() {
-        // If form is submitted
+        // Si le formulaire est soumis
         if ($_SERVER["REQUEST_METHOD"] == "POST") {
-            // Get form data
+            // Récupération des données du formulaire
             $name = $_POST['name'] ?? '';
             $email = $_POST['email'] ?? '';
             $password = $_POST['password'] ?? '';
@@ -90,7 +150,7 @@ class AuthController {
             // IMPORTANT: Changé de 'familymember' à 'famille' pour correspondre à la base de données
             $role = $_POST['role'] ?? 'famille'; 
             
-            // Simple validation
+            // Validation des données
             $errors = [];
             if (empty($name)) {
                 $errors[] = "Le nom est requis";
@@ -106,18 +166,18 @@ class AuthController {
                 $errors[] = "Le mot de passe doit contenir au moins 6 caractères";
             }
             
-            // Check if email already exists
+            // Vérification si l'email existe déjà
             $user = User::getByEmail($email);
             if ($user) {
                 $errors[] = "Cet email est déjà utilisé";
             }
             
-            // If no errors, register the user
+            // Si pas d'erreurs, inscrire l'utilisateur
             if (empty($errors)) {
                 $result = User::register($name, $email, $password, $role);
                 
                 if ($result) {
-                    // Redirect to login page with success message
+                    // Redirection vers la page de connexion avec un message de succès
                     $_SESSION['success_message'] = "Inscription réussie ! Vous pouvez maintenant vous connecter.";
                     header('Location: index.php?controller=auth&action=login');
                     exit;
@@ -126,22 +186,26 @@ class AuthController {
                 }
             }
             
-            // If there are errors, show the register form again with errors
+            // S'il y a des erreurs, afficher à nouveau le formulaire avec les erreurs
             $this->render('auth/register', ['errors' => $errors, 'name' => $name, 'email' => $email]);
         } else {
-            // Show the register form
+            // Afficher le formulaire d'inscription
             $this->render('auth/register', []);
         }
     }
 
-    // Forgot password method
+    /**
+     * Méthode de récupération de mot de passe
+     * 
+     * Permet à l'utilisateur de réinitialiser son mot de passe s'il l'a oublié
+     */
     public function forgotPassword() {
-        // If form is submitted
+        // Si le formulaire est soumis
         if ($_SERVER["REQUEST_METHOD"] == "POST") {
-            // Get email from form
+            // Récupération de l'email du formulaire
             $email = $_POST['email'] ?? '';
             
-            // Simple validation
+            // Validation simple
             $errors = [];
             if (empty($email)) {
                 $errors[] = "L'email est requis";
@@ -149,24 +213,25 @@ class AuthController {
                 $errors[] = "Email invalide";
             }
             
-            // Check if user exists
+            // Vérification si l'utilisateur existe
             $user = User::getByEmail($email);
             if (!$user) {
                 $errors[] = "Aucun compte n'est associé à cet email";
             }
             
+            // Si pas d'erreurs, procéder à la réinitialisation
             if (empty($errors)) {
-                // Generate a random temporary password
+                // Génération d'un mot de passe temporaire aléatoire
                 $tempPassword = substr(md5(uniqid(mt_rand(), true)), 0, 8);
                 
-                // Update user password
+                // Mise à jour du mot de passe utilisateur
                 $userId = $user['id'];
                 $userName = $user['name'];
                 
-                // Hash the new password
+                // Hachage du nouveau mot de passe
                 $hashedPassword = password_hash($tempPassword, PASSWORD_DEFAULT);
                 
-                // Update the password in database
+                // Mise à jour du mot de passe dans la base de données
                 $db = new DbConnect();
                 $connection = $db->getConnection();
                 $stmt = $connection->prepare("UPDATE users SET password = :password WHERE id = :id");
@@ -176,10 +241,10 @@ class AuthController {
                 ]);
                 
                 if ($result) {
-                    // Here we would normally send an email with the temporary password
-                    // But for this example, we'll just display it to the user
+                    // Normalement, on enverrait un email avec le mot de passe temporaire
+                    // Mais pour cet exemple, on l'affiche simplement à l'utilisateur
                     
-                    // Success message
+                    // Message de succès
                     $_SESSION['temp_password'] = $tempPassword;
                     $_SESSION['success_message'] = "Un mot de passe temporaire a été généré. Veuillez vérifier ci-dessous.";
                     $this->render('auth/reset_password_success', [
@@ -192,10 +257,10 @@ class AuthController {
                 }
             }
             
-            // If there are errors, show the form again with errors
+            // S'il y a des erreurs, afficher à nouveau le formulaire avec les erreurs
             $this->render('auth/forgot_password', ['errors' => $errors, 'email' => $email]);
         } else {
-            // Show the forgot password form
+            // Afficher le formulaire de récupération de mot de passe
             $this->render('auth/forgot_password', []);
         }
     }

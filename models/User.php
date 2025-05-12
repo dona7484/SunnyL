@@ -50,12 +50,10 @@ class User {
             return false;
         }
         
-        // Si le rôle est 'familymember', le convertir en 'famille' pour correspondre à l'énumération de la base de données
         if ($role === 'familymember') {
             $role = 'famille';
         }
         
-        // Vérifier que le rôle est valide (soit 'famille' soit 'senior')
         if ($role !== 'famille' && $role !== 'senior') {
             $role = 'famille'; // Valeur par défaut si le rôle est invalide
         }

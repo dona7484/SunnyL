@@ -12,6 +12,29 @@ if (session_status() === PHP_SESSION_NONE) {
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
+        .back-dashboard-btn {
+    display: inline-flex;
+    align-items: center;
+    background-color: #4a4a4a;
+    color: white;
+    padding: 12px 20px;
+    border-radius: 50px;
+    text-decoration: none;
+    font-weight: 500;
+    transition: background-color 0.3s ease;
+    border: none;
+    margin-bottom: 20px;
+}
+
+.back-dashboard-btn:hover {
+    background-color: #333333;
+    color: white;
+    text-decoration: none;
+}
+
+.back-dashboard-btn i {
+    margin-right: 8px;
+}
         .relations-container {
             max-width: 800px;
             margin: 50px auto;

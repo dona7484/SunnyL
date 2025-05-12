@@ -47,6 +47,29 @@
 
 <!-- Styles boutons -->
 <style>
+    .back-dashboard-btn {
+    display: inline-flex;
+    align-items: center;
+    background-color: #4a4a4a;
+    color: white;
+    padding: 12px 20px;
+    border-radius: 50px;
+    text-decoration: none;
+    font-weight: 500;
+    transition: background-color 0.3s ease;
+    border: none;
+    margin-bottom: 20px;
+}
+
+.back-dashboard-btn:hover {
+    background-color: #333333;
+    color: white;
+    text-decoration: none;
+}
+
+.back-dashboard-btn i {
+    margin-right: 8px;
+}
 .btn-green {
     background: #39b54a;
     color: #fff;
