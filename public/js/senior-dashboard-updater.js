@@ -1,121 +1,378 @@
 /**
- * Script d'actualisation des notifications en temps réel pour le tableau de bord senior
+ * Système amélioré de notifications pour le tableau de bord senior
+ * Optimisé pour une réactivité et fiabilité maximales
  */
-class SeniorDashboardUpdater {
+class SeniorDashboardNotifications {
     constructor(options = {}) {
-        // Options par défaut avec possibilité de personnalisation
-        this.options = {
-            // Vérifier toutes les 8 secondes (plus rapide que le tableau familial)
-            refreshInterval: options.refreshInterval || 8000,
-            // Endpoint pour récupérer les notifications
-            notificationEndpoint: options.notificationEndpoint || 'index.php?controller=notification&action=getUserNotifications',
-            // Sélecteurs DOM adaptés au tableau de bord senior
+        // Configuration avec valeurs par défaut
+        this.config = {
+            // Intervalle de vérification plus court pour une meilleure réactivité
+            checkInterval: options.checkInterval || 5000, // 5 secondes
+            endpoint: options.endpoint || 'index.php?controller=notification&action=getUserNotifications',
             selectors: {
-                notificationBubble: '#notif-bubble',
-                notificationText: '#notif-bubble-text',
-                notificationIcon: '.notif-bubble-icon',
+                bubble: '#notif-bubble',
+                bubbleText: '#notif-bubble-text',
+                bubbleIcon: '.notif-bubble-icon',
                 typeLabel: '.notif-type-label',
+                timestamp: '.notif-timestamp',
                 readButton: '#mark-as-read-button',
-                notificationSound: '#notification-sound'
-            }
+                soundElement: '#notification-sound'
+            },
+            debug: options.debug || true
         };
-        
+
         // État interne
-        this.lastUpdateTime = Date.now();
+        this.isInitialized = false;
+        this.checkTimer = null;
         this.lastNotificationId = null;
-        this.refreshTimer = null;
-        
+        this.lastCheckTime = 0;
+        this.isCheckingNow = false;
+
         // Lier les méthodes au contexte actuel
-        this.init = this.init.bind(this);
-        this.checkForNewNotifications = this.checkForNewNotifications.bind(this);
-        this.updateNotificationBubble = this.updateNotificationBubble.bind(this);
+        this.initSystem = this.initSystem.bind(this);
+        this.checkNotifications = this.checkNotifications.bind(this);
+        this.updateNotificationUI = this.updateNotificationUI.bind(this);
         this.playNotificationSound = this.playNotificationSound.bind(this);
+        this.log = this.log.bind(this);
     }
-    
+
     /**
-     * Initialise le système de mise à jour
+     * Initialise le système de notifications
      */
-    init() {
-        console.log('Initialisation du système de mise à jour du tableau de bord senior...');
+    initSystem() {
+        // Éviter l'initialisation multiple
+        if (this.isInitialized) return;
+
+        this.log('Initialisation du système de notifications dashboard senior...');
+
+        // Vérifier si nous sommes sur le dashboard senior
+        if (!this.isDashboardPage()) {
+            this.log('Cette page n\'est pas le dashboard senior, initialisation annulée', 'warn');
+            return;
+        }
+
+        // Vérifier et créer les éléments de notification si nécessaire
+        if (!this.ensureNotificationElements()) {
+            this.log('Impossible de trouver ou créer les éléments de notification', 'error');
+            return;
+        }
+
+        // Premier check immédiat
+        this.checkNotifications();
+
+        // Puis à intervalles réguliers
+        this.checkTimer = setInterval(this.checkNotifications, this.config.checkInterval);
         
-        // Récupérer l'ID de notification initial si une bulle est déjà affichée
-        const readButton = document.querySelector(this.options.selectors.readButton);
-        if (readButton && readButton.dataset.notifId) {
-            this.lastNotificationId = readButton.dataset.notifId;
+        // Marquer comme initialisé
+        this.isInitialized = true;
+        this.log(`Système de notifications senior initialisé! Vérification toutes les ${this.config.checkInterval/1000}s`);
+    }
+
+    /**
+     * Vérifie si nous sommes sur la page du dashboard senior
+     */
+    isDashboardPage() {
+        // Vérifier plusieurs conditions pour confirmer que nous sommes sur le dashboard senior
+        const isDashboard = document.getElementById('dashboardContainer') !== null;
+        const hasRightSection = document.querySelector('.rightSection') !== null;
+        const userIsLoggedIn = document.body.dataset.userId !== undefined;
+        const userIsSenior = document.body.dataset.userRole === 'senior';
+        
+        return isDashboard || (hasRightSection && userIsLoggedIn && userIsSenior);
+    }
+
+    /**
+     * Assure que tous les éléments de notification existent
+     */
+    ensureNotificationElements() {
+        const bubble = document.querySelector(this.config.selectors.bubble);
+        
+        // Si la bulle existe déjà, vérifier ses composants
+        if (bubble) {
+            const textElement = bubble.querySelector(this.config.selectors.bubbleText);
+            const readButton = bubble.querySelector(this.config.selectors.readButton);
+            
+            if (!textElement || !readButton) {
+                this.log('Éléments de notification incomplets', 'warn');
+                return false;
+            }
+            
+            return true;
         }
         
-        // Démarrer la vérification périodique
-        this.refreshTimer = setInterval(this.checkForNewNotifications, this.options.refreshInterval);
-        
-        // Première vérification immédiate
-        this.checkForNewNotifications();
-        
-        console.log('Système de mise à jour initialisé avec succès, vérification toutes les', 
-                   this.options.refreshInterval / 1000, 'secondes');
+        // Si la bulle n'existe pas, essayer de la créer
+        this.log('Bulle de notification non trouvée, tentative de création...', 'warn');
+        return this.createNotificationBubble();
     }
-    
+
     /**
-     * Vérifie s'il y a de nouvelles notifications
+     * Crée une bulle de notification si elle n'existe pas
      */
-    checkForNewNotifications() {
-        fetch(this.options.notificationEndpoint)
-            .then(response => response.json())
+    createNotificationBubble() {
+        if (document.querySelector(this.config.selectors.bubble)) return true;
+        
+        try {
+            const bubbleHtml = `
+            <div id="notif-bubble" class="notif-bubble" style="display:none;">
+                <img src="images/IconeRappel.png" alt="🔔" class="notif-bubble-icon">
+                <div style="flex-grow: 1;">
+                    <div class="notif-type-label">Nouvelle notification</div>
+                    <div id="notif-bubble-text" class="notif-bubble-text">
+                        Vous avez une notification
+                    </div>
+                    <div class="notif-timestamp">À l'instant</div>
+                </div>
+                <button id="mark-as-read-button" class="notif-button" data-notif-id="" data-type="" data-related-id="">
+                    <img src="images/check-button.png" alt="Valider" style="width: 35px; height: 35px;">
+                </button>
+            </div>`;
+            
+            document.body.insertAdjacentHTML('beforeend', bubbleHtml);
+            
+            // Ajouter les styles si nécessaires
+            if (!document.getElementById('notification-bubble-styles')) {
+                const styleEl = document.createElement('style');
+                styleEl.id = 'notification-bubble-styles';
+                styleEl.textContent = `
+                .notif-bubble {
+                    position: fixed;
+                    top: 20%;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    background-color: #fff;
+                    border-left: 5px solid #ffc107;
+                    border-radius: 12px;
+                    padding: 25px 30px;
+                    display: flex;
+                    align-items: center;
+                    gap: 20px;
+                    box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+                    z-index: 10000;
+                    width: 80%;
+                    max-width: 600px;
+                    transition: all 0.3s ease;
+                }
+                .notif-bubble-icon {
+                    width: 70px;
+                    height: 70px;
+                    padding: 10px;
+                    background-color: rgba(255, 193, 7, 0.1);
+                    border-radius: 50%;
+                }
+                .notif-bubble-text {
+                    font-size: 24px;
+                    font-weight: 600;
+                    color: #333;
+                    margin-bottom: 10px;
+                    line-height: 1.4;
+                }
+                .notif-button {
+                    background-color: #4CAF50;
+                    color: white;
+                    border: none;
+                    border-radius: 50%;
+                    width: 70px;
+                    height: 70px;
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    cursor: pointer;
+                    margin-left: auto;
+                    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+                    transition: transform 0.2s ease, background-color 0.3s ease;
+                }
+                .notif-button:hover {
+                    transform: scale(1.1);
+                    background-color: #45a049;
+                }
+                .notif-type-label {
+                    font-size: 14px;
+                    color: #666;
+                    margin-bottom: 5px;
+                    text-transform: uppercase;
+                    letter-spacing: 1px;
+                }
+                .notif-timestamp {
+                    font-size: 14px;
+                    color: #888;
+                    font-style: italic;
+                }
+                @keyframes notification-in {
+                    0% { opacity: 0; transform: translate(-50%, -30px); }
+                    100% { opacity: 1; transform: translate(-50%, 0); }
+                }
+                @keyframes notification-out {
+                    0% { opacity: 1; transform: translate(-50%, 0); }
+                    100% { opacity: 0; transform: translate(-50%, -30px); }
+                }
+                .notification-show {
+                    animation: notification-in 0.5s forwards;
+                }
+                .notification-hide {
+                    animation: notification-out 0.5s forwards;
+                }`;
+                document.head.appendChild(styleEl);
+            }
+            
+            // Attacher l'événement au bouton
+            const readButton = document.getElementById('mark-as-read-button');
+            if (readButton) {
+                readButton.addEventListener('click', function() {
+                    const notifId = this.dataset.notifId;
+                    const type = this.dataset.type;
+                    const relatedId = this.dataset.relatedId;
+                    
+                    // Utiliser la fonction globale si disponible
+                    if (typeof markNotificationAsRead === 'function') {
+                        markNotificationAsRead(notifId, type, relatedId);
+                    } else {
+                        // Fallback: appel direct à l'API
+                        fetch('index.php?controller=notification&action=markNotificationAsRead', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                notif_id: notifId,
+                                type: type,
+                                related_id: relatedId
+                            })
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                // Masquer la bulle
+                                const bubble = document.getElementById('notif-bubble');
+                                if (bubble) {
+                                    bubble.style.display = 'none';
+                                }
+                                
+                                // Redirection selon le type
+                                switch (type) {
+                                    case 'message':
+                                    case 'audio':
+                                        window.location.href = 'index.php?controller=message&action=received';
+                                        break;
+                                    case 'photo':
+                                        window.location.href = 'index.php?controller=photo&action=gallery';
+                                        break;
+                                    case 'event':
+                                        window.location.href = relatedId ? 
+                                            `index.php?controller=event&action=show&id=${relatedId}` : 
+                                            'index.php?controller=event&action=index';
+                                        break;
+                                }
+                            }
+                        });
+                    }
+                });
+            }
+            
+            this.log('Bulle de notification créée avec succès');
+            return true;
+        } catch (error) {
+            this.log('Erreur lors de la création de la bulle: ' + error.message, 'error');
+            return false;
+        }
+    }
+
+    /**
+     * Vérifie les nouvelles notifications via l'API
+     */
+    checkNotifications() {
+        // Éviter les vérifications simultanées
+        if (this.isCheckingNow) return;
+        
+        // Marquer comme en cours de vérification
+        this.isCheckingNow = true;
+        this.lastCheckTime = Date.now();
+        
+        // Log avec timestamp pour aider au débogage
+        this.log(`Vérification des notifications à ${new Date().toLocaleTimeString()}...`);
+        
+        // Utiliser fetch avec un délai maximum pour éviter les appels bloquants
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
+        
+        fetch(this.config.endpoint, { signal: controller.signal })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Erreur HTTP: ${response.status}`);
+                }
+                return response.json();
+            })
             .then(notifications => {
-                console.log('Réponse API notifications (senior):', notifications);
+                this.log(`${notifications.length} notification(s) reçue(s)`, 'info');
                 
                 if (Array.isArray(notifications) && notifications.length > 0) {
-                    // Récupérer la notification la plus récente
-                    const latestNotification = notifications[0];
+                    // Obtenir la notification la plus récente
+                    const newestNotification = notifications[0];
                     
                     // Vérifier si c'est une nouvelle notification
-                    if (latestNotification.id !== this.lastNotificationId) {
-                        // Jouer un son pour la nouvelle notification
+                    if (!this.lastNotificationId || newestNotification.id !== this.lastNotificationId) {
+                        this.log(`Nouvelle notification détectée! ID: ${newestNotification.id}, Type: ${newestNotification.type}`);
+                        
+                        // Mettre à jour la notification
+                        this.updateNotificationUI(newestNotification);
+                        
+                        // Jouer le son de notification
                         this.playNotificationSound();
                         
-                        // Mettre à jour la bulle de notification
-                        this.updateNotificationBubble(latestNotification);
-                        
-                        // Mettre à jour l'ID de la dernière notification
-                        this.lastNotificationId = latestNotification.id;
-                        console.log('Nouvelle notification détectée, ID:', this.lastNotificationId);
+                        // Mettre à jour l'ID de dernière notification
+                        this.lastNotificationId = newestNotification.id;
+                    } else {
+                        this.log('Pas de nouvelles notifications');
                     }
                 } else if (Array.isArray(notifications) && notifications.length === 0) {
-                    // Masquer la bulle s'il n'y a plus de notifications
-                    const bubble = document.querySelector(this.options.selectors.notificationBubble);
+                    // Masquer la bulle s'il n'y a pas de notifications
+                    const bubble = document.querySelector(this.config.selectors.bubble);
                     if (bubble && bubble.style.display !== 'none') {
                         bubble.style.display = 'none';
                     }
                     this.lastNotificationId = null;
                 }
-                
-                // Mettre à jour le temps de la dernière vérification
-                this.lastUpdateTime = Date.now();
             })
             .catch(error => {
-                console.error('Erreur lors de la vérification des notifications:', error);
+                if (error.name === 'AbortError') {
+                    this.log('Requête annulée: délai dépassé', 'warn');
+                } else {
+                    this.log(`Erreur lors de la vérification: ${error.message}`, 'error');
+                }
+            })
+            .finally(() => {
+                // Nettoyer le timeout et réinitialiser l'état
+                clearTimeout(timeoutId);
+                this.isCheckingNow = false;
             });
     }
-    
+
     /**
-     * Met à jour la bulle de notification
+     * Met à jour l'interface utilisateur avec la nouvelle notification
      */
-    updateNotificationBubble(notification) {
-        // Récupérer les éléments DOM
-        const bubble = document.querySelector(this.options.selectors.notificationBubble);
-        const textElement = document.querySelector(this.options.selectors.notificationText);
-        const typeLabel = document.querySelector(this.options.selectors.typeLabel);
-        const iconElement = document.querySelector(this.options.selectors.notificationIcon);
-        const readButton = document.querySelector(this.options.selectors.readButton);
+    updateNotificationUI(notification) {
+        // Récupérer les éléments DOM nécessaires
+        const bubble = document.querySelector(this.config.selectors.bubble);
+        const bubbleText = document.querySelector(this.config.selectors.bubbleText);
+        const typeLabel = document.querySelector(this.config.selectors.typeLabel);
+        const iconElement = document.querySelector(this.config.selectors.bubbleIcon);
+        const timestamp = document.querySelector(this.config.selectors.timestamp);
+        const readButton = document.querySelector(this.config.selectors.readButton);
         
-        if (!bubble || !textElement || !readButton) {
-            console.error('Éléments de notification non trouvés dans le DOM');
+        // Vérifier que tous les éléments existent
+        if (!bubble || !bubbleText || !readButton) {
+            this.log('Éléments DOM requis non trouvés', 'error');
             return;
         }
         
-        // Mettre à jour le contenu de la notification
-        textElement.textContent = notification.content;
+        // Mettre à jour le contenu et les attributs
+        bubbleText.textContent = notification.content || 'Nouvelle notification';
         
-        // Mettre à jour le type de notification
+        if (readButton) {
+            readButton.dataset.notifId = notification.id || '';
+            readButton.dataset.type = notification.type || '';
+            readButton.dataset.relatedId = notification.related_id || '';
+        }
+        
         if (typeLabel) {
             switch (notification.type) {
                 case 'message':
@@ -135,7 +392,6 @@ class SeniorDashboardUpdater {
             }
         }
         
-        // Mettre à jour l'icône en fonction du type
         if (iconElement) {
             switch (notification.type) {
                 case 'message':
@@ -155,55 +411,112 @@ class SeniorDashboardUpdater {
             }
         }
         
-        // Mettre à jour les attributs du bouton de lecture
-        readButton.setAttribute('data-notif-id', notification.id);
-        readButton.setAttribute('data-type', notification.type || '');
-        readButton.setAttribute('data-related-id', notification.related_id || '');
-        
-        // Afficher la bulle avec une animation
-        bubble.style.display = 'none';
-        setTimeout(() => {
-            bubble.style.display = 'flex';
-            bubble.classList.add('notification-show');
-            setTimeout(() => {
-                bubble.classList.remove('notification-show');
-            }, 1000);
-        }, 100);
-        
-        // Mettre à jour la timestamp
-        const timestamp = bubble.querySelector('.notif-timestamp');
         if (timestamp) {
             timestamp.textContent = 'À l\'instant';
         }
+
+        // Afficher la bulle avec animation
+        bubble.style.opacity = '0';
+        bubble.style.display = 'flex';
+        
+        // Force le reflow pour que l'animation fonctionne
+        void bubble.offsetWidth;
+        
+        // Appliquer l'animation d'entrée
+        bubble.style.opacity = '1';
+        bubble.classList.add('notification-show');
+        
+        // Lire vocalement la notification si la fonction est disponible
+        if (typeof speakMessage === 'function') {
+            speakMessage(notification.content);
+        }
     }
-    
+
     /**
      * Joue le son de notification
      */
     playNotificationSound() {
-        const audio = document.querySelector(this.options.selectors.notificationSound);
-        if (audio) {
-            audio.volume = 0.5; // Volume à 50%
-            audio.currentTime = 0; // Remettre au début pour rejouer
-            audio.play().catch(e => {
-                console.warn('Impossible de jouer le son de notification:', e);
-            });
+        // Trouver l'élément audio
+        const audio = document.querySelector(this.config.selectors.soundElement);
+        
+        if (!audio) {
+            this.log('Élément audio non trouvé, création d\'un élément temporaire', 'warn');
+            
+            // Créer un élément audio temporaire si nécessaire
+            const tempAudio = new Audio('audio/notif-sound.mp3');
+            tempAudio.volume = 0.5;
+            tempAudio.play().catch(e => this.log('Erreur de lecture audio: ' + e.message, 'error'));
+            return;
+        }
+        
+        // Réinitialiser l'audio et le jouer
+        audio.pause();
+        audio.currentTime = 0;
+        audio.volume = 0.5;
+        
+        const playPromise = audio.play();
+        
+        if (playPromise !== undefined) {
+            playPromise
+                .then(() => this.log('Son de notification joué'))
+                .catch(e => {
+                    this.log('Erreur lors de la lecture du son: ' + e.message, 'warn');
+                    
+                    // Tenter d'activer le son lors du prochain clic utilisateur
+                    if (e.name === 'NotAllowedError') {
+                        document.body.addEventListener('click', function enableAudio() {
+                            audio.play().catch(() => {});
+                            document.body.removeEventListener('click', enableAudio);
+                        }, { once: true });
+                    }
+                });
+        }
+    }
+
+    /**
+     * Fonction de journalisation avec niveaux
+     */
+    log(message, level = 'log') {
+        if (!this.config.debug) return;
+        
+        const prefix = '[SeniorNotify] ';
+        
+        switch (level) {
+            case 'error':
+                console.error(prefix + message);
+                break;
+            case 'warn':
+                console.warn(prefix + message);
+                break;
+            case 'info':
+                console.info(prefix + message);
+                break;
+            default:
+                console.log(prefix + message);
         }
     }
 }
 
-// Initialiser au chargement de la page
+// Initialiser avec auto-détection
 document.addEventListener('DOMContentLoaded', function() {
-    // Vérifier si nous sommes sur le tableau de bord senior
-    const isDashboard = document.getElementById('dashboardContainer') !== null;
-    
-    if (isDashboard) {
-        const dashboardUpdater = new SeniorDashboardUpdater();
-        dashboardUpdater.init();
+    // Délai court pour s'assurer que le DOM est complètement chargé
+    setTimeout(() => {
+        window.seniorNotifications = new SeniorDashboardNotifications();
+        window.seniorNotifications.initSystem();
         
-        // Rendre l'instance disponible globalement
-        window.seniorDashboardUpdater = dashboardUpdater;
-        
-        console.log('SeniorDashboardUpdater initialisé avec succès!');
-    }
+        // En cas d'échec d'initialisation automatique, mettre un bouton debug dans la console
+        console.log('%c[DEBUG] Si les notifications ne fonctionnent pas, exécutez: window.seniorNotifications.initSystem()', 
+                   'background:#ff9; color:#333; padding:4px;');
+    }, 500);
 });
+
+// Fonction utilitaire pour l'activation manuelle depuis la console
+function initSeniorNotifications() {
+    if (window.seniorNotifications) {
+        window.seniorNotifications.initSystem();
+    } else {
+        window.seniorNotifications = new SeniorDashboardNotifications();
+        window.seniorNotifications.initSystem();
+    }
+    return "Système de notifications senior initialisé manuellement";
+}

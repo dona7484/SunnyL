@@ -25,6 +25,7 @@ $activities = Activity::getRecentActivities($_SESSION['user_id'], 10);
   <title>Dashboard Senior - SunnyLink</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -207,7 +208,7 @@ $activities = Activity::getRecentActivities($_SESSION['user_id'], 10);
       text-transform: uppercase;
       letter-spacing: 1px;
     }
- Lorsqu'une notification est affichée pendant le diaporama, appliquer ces styles spéciaux */
+ /* Lorsqu'une notification est affichée pendant le diaporama, appliquer ces styles spéciaux */ */
 .notif-bubble.over-slideshow {
     background-color: rgba(255, 255, 255, 0.95); /* Plus opaque */
     box-shadow: 0 0 30px rgba(255, 255, 255, 0.3);
@@ -397,6 +398,37 @@ $activities = Activity::getRecentActivities($_SESSION['user_id'], 10);
     box-shadow: 0 4px 10px rgba(0,0,0,0.2);
     font-family: 'Arial', sans-serif;
     text-align: center;
+}@media (max-width: 1024px) and (min-width: 768px) {
+  /* Styles spécifiques pour tablettes */
+  .menuItem {
+    width: 120px;
+    height: 120px;
+  }
+  
+  .rightSection {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+  }
+  
+  /* Augmenter taille des zones tactiles */
+  .notif-button {
+    width: 80px;
+    height: 80px;
+  }
+}
+@media (max-width: 1024px) and (orientation: portrait) {
+  #dashboardContainer {
+    flex-direction: column;
+  }
+  
+  .leftSection, .rightSection {
+    width: 100%;
+  }
+  
+  .photoSunnylink {
+    max-height: 300px;
+    width: auto;
+  }
 }
   </style>
 </head>

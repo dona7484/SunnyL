@@ -6,56 +6,123 @@ require_once __DIR__ . '/Controller.php';
 class ParametresController extends Controller
 {
     // Affichage de la page paramètres
-    public function index()
-    {
-        if (!isset($_SESSION['user_id'])) {
-            header('Location: index.php?controller=auth&action=login');
-            exit;
-        }
-        $userId = $_SESSION['user_id'];
-        $user = User::getById($userId);
-
-        // Récupérer les seniors liés à ce membre de la famille
+    public function index() {
+    if (!isset($_SESSION['user_id'])) {
+        header('Location: index.php?controller=auth&action=login');
+        exit;
+    }
+    
+    $userId = $_SESSION['user_id'];
+    $user = User::getById($userId);
+    
+    // Variables spécifiques au rôle
+    $linkedParents = [];
+    
+    // Si c'est un membre de la famille, récupérer les seniors liés
+    if ($_SESSION['role'] === 'famille' || $_SESSION['role'] === 'familymember') {
         $seniorModel = new SeniorModel();
         $linkedParents = $seniorModel->getSeniorsForFamilyMember($userId);
-
+    }
+    
+    // Rendre la vue appropriée selon le rôle
+    if ($_SESSION['role'] === 'senior') {
+        $this->render('parametres/index', [
+            'user' => $user
+        ]);
+    } else {
         $this->render('parametres/index', [
             'user' => $user,
             'linkedParents' => $linkedParents
         ]);
     }
+}
 
-    // Mise à jour du profil (nom, email, avatar)
-    public function updateProfile()
-    {
-        if (!isset($_SESSION['user_id'])) {
-            header('Location: index.php?controller=auth&action=login');
-            exit;
-        }
-        $userId = $_SESSION['user_id'];
-        $name = $_POST['name'] ?? '';
-        $email = $_POST['email'] ?? '';
-        $avatar = null;
-
-        // Gestion de l'upload d'avatar si besoin
-        if (isset($_FILES['avatar']) && $_FILES['avatar']['error'] === UPLOAD_ERR_OK) {
-            $uploadDir = __DIR__ . '/../public/images/';
-            $filename = uniqid() . '-' . basename($_FILES['avatar']['name']);
-            move_uploaded_file($_FILES['avatar']['tmp_name'], $uploadDir . $filename);
-            $avatar = $filename;
-        }
-
-        $result = User::updateProfile($userId, $name, $email, null, $avatar);
-
-        if ($result) {
-            $_SESSION['success_message'] = "Profil mis à jour.";
-        } else {
-            $_SESSION['error_message'] = "Erreur lors de la mise à jour du profil.";
-        }
-        header('Location: index.php?controller=parametres&action=index');
+ public function updateProfile() {
+    if (!isset($_SESSION['user_id'])) {
+        header('Location: index.php?controller=auth&action=login');
         exit;
     }
-
+    
+    $userId = $_SESSION['user_id'];
+    $name = $_POST['name'] ?? '';
+    $email = $_POST['email'] ?? '';
+    
+    // Vérifier si l'avatar est présent dans la requête
+    $hasAvatar = isset($_FILES['avatar']) && $_FILES['avatar']['error'] === UPLOAD_ERR_OK;
+    $avatarPath = null;
+    
+    if ($hasAvatar) {
+        // Créer le dossier des images s'il n'existe pas
+        $uploadDir = __DIR__ . '/../public/images/';
+        if (!is_dir($uploadDir)) {
+            if (!mkdir($uploadDir, 0777, true)) {
+                error_log("Impossible de créer le répertoire pour les avatars: $uploadDir");
+                $_SESSION['error_message'] = "Erreur : Impossible de créer le répertoire pour les avatars.";
+                header('Location: index.php?controller=parametres&action=index');
+                exit;
+            }
+        }
+        
+        // Vérifier les permissions du dossier
+        if (!is_writable($uploadDir)) {
+            error_log("Le répertoire des avatars n'est pas accessible en écriture: $uploadDir");
+            $_SESSION['error_message'] = "Erreur : Le dossier des avatars n'est pas accessible en écriture.";
+            header('Location: index.php?controller=parametres&action=index');
+            exit;
+        }
+        
+        // Générer un nom de fichier unique
+        $fileExtension = strtolower(pathinfo($_FILES['avatar']['name'], PATHINFO_EXTENSION));
+        $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif'];
+        
+        // Vérifier l'extension
+        if (!in_array($fileExtension, $allowedExtensions)) {
+            $_SESSION['error_message'] = "Erreur : Type de fichier non autorisé. Utilisez JPG, PNG ou GIF.";
+            header('Location: index.php?controller=parametres&action=index');
+            exit;
+        }
+        
+        // Vérifier la taille (max 5 Mo)
+        if ($_FILES['avatar']['size'] > 5 * 1024 * 1024) {
+            $_SESSION['error_message'] = "Erreur : L'image est trop volumineuse (max 5 Mo).";
+            header('Location: index.php?controller=parametres&action=index');
+            exit;
+        }
+        
+        // Nom de fichier unique avec timestamp
+        $filename = 'avatar_' . $userId . '_' . time() . '.' . $fileExtension;
+        $uploadFilePath = $uploadDir . $filename;
+        
+        // Déplacer le fichier temporaire
+        if (move_uploaded_file($_FILES['avatar']['tmp_name'], $uploadFilePath)) {
+            $avatarPath = $filename;
+            error_log("Avatar téléchargé avec succès: $uploadFilePath");
+        } else {
+            error_log("Échec du téléchargement de l'avatar. Code d'erreur: " . $_FILES['avatar']['error']);
+            $_SESSION['error_message'] = "Erreur lors du téléchargement de la photo.";
+            header('Location: index.php?controller=parametres&action=index');
+            exit;
+        }
+    }
+    
+    // Mise à jour du profil
+    if ($avatarPath !== null) {
+        // Si une nouvelle image a été téléchargée
+        $result = User::updateProfile($userId, $name, $email, null, $avatarPath);
+    } else {
+        // Sinon, mettre à jour uniquement le nom et l'email
+        $result = User::updateProfile($userId, $name, $email);
+    }
+    
+    if ($result) {
+        $_SESSION['success_message'] = "Profil mis à jour avec succès.";
+    } else {
+        $_SESSION['error_message'] = "Erreur lors de la mise à jour du profil.";
+    }
+    
+    header('Location: index.php?controller=parametres&action=index');
+    exit;
+}
     // Changement de mot de passe
     public function updatePassword()
     {

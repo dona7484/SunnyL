@@ -19,7 +19,7 @@ class SunnyLinkWebSocket {
         this.maxReconnectAttempts = 10;
         this.reconnectInterval = 3000; // 3 secondes
         this.pingInterval = null;
-        this.pingIntervalTime = 30000; // 30 secondes
+        this.pingIntervalTime = 15000; // 15 secondes
         this.autoReconnect = true;
         
         // Détecter le protocole (ws/wss) en fonction du protocole de la page (http/https)
@@ -29,7 +29,12 @@ class SunnyLinkWebSocket {
         
         console.log('SunnyLinkWebSocket initialisé');
     }
-
+handleReconnection() {
+    if (this.socket && this.socket.readyState === WebSocket.CLOSED) {
+        console.log("Connexion WebSocket fermée, tentative de reconnexion...");
+        this.connect(this.userId);
+    }
+}
     /**
      * Établit la connexion WebSocket
      * @param {number} userId - ID de l'utilisateur connecté
