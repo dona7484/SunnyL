@@ -26,17 +26,18 @@ class Notification {
     }
 
     // Récupérer les notifications non lues d'un utilisateur
-    public static function getUnreadByUserId($userId) {
-        try {
-            $db = self::getDb();
-            $stmt = $db->prepare("SELECT * FROM notifications WHERE user_id = ? AND is_read = 0 ORDER BY created_at DESC");
-            $stmt->execute([$userId]);
-            return $stmt->fetchAll(PDO::FETCH_ASSOC);
-        } catch (Exception $e) {
-            error_log("Erreur lors de la récupération des notifications: " . $e->getMessage());
-            return [];
-        }
+public static function getUnreadByUserId($userId) {
+    try {
+        $db = self::getDb();
+        // Cette requête doit impérativement filtrer sur is_read = 0
+        $stmt = $db->prepare("SELECT * FROM notifications WHERE user_id = ? AND is_read = 0 ORDER BY created_at DESC");
+        $stmt->execute([$userId]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    } catch (Exception $e) {
+        error_log("Erreur dans getUnreadByUserId: " . $e->getMessage());
+        return [];
     }
+}
 
     // Récupérer les notifications non vues d'un utilisateur
     public static function getUnseenByUser($userId) {
@@ -64,16 +65,25 @@ class Notification {
     }
 
     // Marquer une notification comme lue
-    public static function markAsRead($notifId) {
-        try {
-            $db = self::getDb();
-            $stmt = $db->prepare("UPDATE notifications SET is_read = 1 WHERE id = ?");
-            return $stmt->execute([$notifId]);
-        } catch (Exception $e) {
-            error_log("Erreur lors du marquage de la notification comme lue: " . $e->getMessage());
-            return false;
+   public static function markAsRead($notifId) {
+    try {
+        $db = self::getDb();
+        $stmt = $db->prepare("UPDATE notifications SET is_read = 1 WHERE id = ?");
+        $result = $stmt->execute([$notifId]);
+        
+        // Vérification que la requête a bien fonctionné
+        if ($result) {
+            error_log("Notification $notifId marquée comme lue avec succès");
+        } else {
+            error_log("Échec de marquage de la notification $notifId comme lue");
         }
+        
+        return $result;
+    } catch (Exception $e) {
+        error_log("Erreur lors du marquage de la notification comme lue: " . $e->getMessage());
+        return false;
     }
+}
 
     // Récupérer une notification par son ID
     public static function getById($notifId) {

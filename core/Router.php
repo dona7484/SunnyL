@@ -31,7 +31,10 @@ class Router {
             header('Location: index.php?controller=home&action=error');
             exit;
         }
-        
+        if (preg_match('/\.php$/', $_SERVER['REQUEST_URI'])) {
+    // Laisser le serveur traiter directement les fichiers PHP
+    return;
+}
         // 🔔 Notifications
         if (isset($_GET['controller']) && $_GET['controller'] === 'notification') {
             $action = $_GET['action'] ?? 'get';

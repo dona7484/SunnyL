@@ -204,38 +204,23 @@ public function sendNotification($userId, $type, $content, $relatedId = null, $i
         }
     }
     // Méthode pour récupérer toutes les notifications non lues de l'utilisateur
-    public function getUserNotifications() {
-        // Définir l'en-tête JSON AVANT toute sortie
-        header('Content-Type: application/json');
-        
-        try {
-            if (session_status() === PHP_SESSION_NONE) {
-                session_start();
-            }
-            
-            // Assurez-vous que $_SESSION['user_id'] est défini
-            if (!isset($_SESSION['user_id'])) {
-                echo json_encode(['error' => "L'utilisateur n'est pas connecté."]);
-                exit;
-            }
+    // Dans la méthode getUserNotifications de NotificationController.php
+public function getUserNotifications() {
+    header('Content-Type: application/json');
     
-            // Log pour le débogage
-            error_log("Récupération des notifications pour l'utilisateur ID: " . $_SESSION['user_id']);
-            
-            // Récupération des notifications
-            $currentNotifications = Notification::getUnreadByUserId($_SESSION['user_id']);
-            
-            // Log pour le débogage
-            error_log("Nombre de notifications trouvées: " . count($currentNotifications));
-            
-            // Retourner les notifications en JSON
-            echo json_encode($currentNotifications);
-        } catch (Exception $e) {
-            error_log("Erreur dans getUserNotifications : " . $e->getMessage());
-            echo json_encode(['error' => 'Une erreur est survenue: ' . $e->getMessage()]);
+    try {
+        if (!isset($_SESSION['user_id'])) {
+            echo json_encode(['error' => "L'utilisateur n'est pas connecté."]);
+            exit;
         }
-        exit; // Terminer l'exécution pour éviter toute sortie supplémentaire
+
+        $notifications = Notification::getUnreadByUserId($_SESSION['user_id']);
+        echo json_encode($notifications);
+    } catch (Exception $e) {
+        echo json_encode(['error' => 'Une erreur est survenue: ' . $e->getMessage()]);
     }
+    exit;
+}
     
     // Méthode pour récupérer la dernière notification non lue
     public function getLastUnreadNotification($userId) {
@@ -251,80 +236,63 @@ public function sendNotification($userId, $type, $content, $relatedId = null, $i
             echo json_encode(['error' => 'Erreur lors de la récupération de la notification : ' . $e->getMessage()]);
         }
     }
+
+public function markNotificationAsRead() {
+    // Définir l'en-tête Content-Type AVANT toute sortie
+    header('Content-Type: application/json');
     
-    public function markNotificationAsRead() {
-        // Définir l'en-tête Content-Type AVANT toute sortie
-        header('Content-Type: application/json');
+    try {
+        // Récupérer les données JSON
+        $jsonData = json_decode(file_get_contents('php://input'), true);
         
-        try {
-            // Récupérer les données JSON
-            $jsonData = json_decode(file_get_contents('php://input'), true);
-            
-            // Chercher l'ID dans le JSON ou dans POST
-            $notifId = null;
-            if ($jsonData && isset($jsonData['notif_id'])) {
-                $notifId = $jsonData['notif_id'];
-            } elseif (isset($_POST['notif_id'])) {
-                $notifId = $_POST['notif_id'];
-            } elseif (isset($_GET['id'])) {
-                $notifId = $_GET['id'];
-            }
-            
-            if ($notifId) {
-                // Utiliser NotificationModel pour récupérer la notification
-                $notificationModel = new NotificationModel();
-                $notification = $notificationModel->getNotificationById($notifId);
-                $type = $notification['type'] ?? '';
-                $relatedId = $notification['related_id'] ?? null;
-                
-                // Marquer la notification comme lue
-                $result = $notificationModel->markAsRead($notifId);
-                
-                // Si c'est une notification de photo, marquer la photo comme vue
-                if ($type === 'photo' && $relatedId) {
-                    require_once __DIR__ . '/../models/Photo.php';
-                    Photo::markAsViewed($relatedId);
-                }
-                
-                // Si c'est une notification d'événement, marquer l'événement comme lu
-                if ($type === 'event' && $relatedId) {
-                    require_once __DIR__ . '/../models/EventModel.php';
-                    $eventModel = new EventModel();
-                    $eventModel->markAsRead($relatedId);
-                }
-                
-                // Récupérer l'ID du membre de la famille (expéditeur)
-                $senderId = $notificationModel->getFamilyMemberIdForNotification($notifId);
-                
-                if ($senderId) {
-                    // Vérifier que l'expéditeur est bien un family member
-                    require_once __DIR__ . '/../models/User.php';
-                    $userModel = new User();
-                    $sender = $userModel->getById($senderId);
-                    
-                    if ($sender && $sender['role'] === 'familymember') {
-                        // Envoyer une notification au family member
-                        $this->sendNotification(
-                            $senderId,
-                            'read_confirmation',
-                            'Votre message a été lu par le senior',
-                            $relatedId,
-                            true
-                        );
-                    }
-                }
-                
-                echo json_encode(['success' => true, 'type' => $type]);
-            } else {
-                echo json_encode(['success' => false, 'error' => 'ID de notification manquant']);
-            }
-        } catch (Exception $e) {
-            error_log("Erreur lors de la mise à jour de la notification: " . $e->getMessage());
-            echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+        // Chercher l'ID dans le JSON ou dans POST
+        $notifId = null;
+        if ($jsonData && isset($jsonData['notif_id'])) {
+            $notifId = $jsonData['notif_id'];
+        } elseif (isset($_POST['notif_id'])) {
+            $notifId = $_POST['notif_id'];
+        } elseif (isset($_GET['id'])) {
+            $notifId = $_GET['id'];
         }
-        exit; // Terminer l'exécution pour éviter toute sortie supplémentaire
+        
+        if ($notifId) {
+            // Utiliser NotificationModel pour récupérer la notification
+            $notificationModel = new NotificationModel();
+            $notification = $notificationModel->getNotificationById($notifId);
+            $type = $notification['type'] ?? '';
+            $relatedId = $notification['related_id'] ?? null;
+            
+            // Log de débogage - AVANT
+            error_log("Marquage de notification comme lue - ID: $notifId, Type: $type");
+            
+            // Marquer la notification comme lue
+            $result = $notificationModel->markAsRead($notifId);
+            
+            // Test supplémentaire en utilisant directement la classe Notification
+            if (class_exists('Notification') && method_exists('Notification', 'markAsRead')) {
+                $notifResult = Notification::markAsRead($notifId);
+                error_log("Résultat Notification::markAsRead: " . ($notifResult ? "Succès" : "Échec"));
+            }
+            
+            // Vérifier que la notification a bien été marquée comme lue
+            $checkNotif = $notificationModel->getNotificationById($notifId);
+            if ($checkNotif && isset($checkNotif['is_read'])) {
+                error_log("Après marquage, is_read = " . $checkNotif['is_read']);
+            }
+            
+            // Autres traitements... (photo, event, etc.)
+            // ...
+            
+            echo json_encode(['success' => true, 'type' => $type]);
+        } else {
+            echo json_encode(['success' => false, 'error' => 'ID de notification manquant']);
+        }
+    } catch (Exception $e) {
+        error_log("Erreur lors de la mise à jour de la notification: " . $e->getMessage());
+        echo json_encode(['success' => false, 'error' => $e->getMessage()]);
     }
-    
+    exit;
+}
     // Méthode pour envoyer une notification push
     public function sendPush($userId, $type, $title, $body, $url = null) {
         $subscription = Notification::getSubscriptionByUserId($userId);

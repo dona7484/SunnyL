@@ -117,9 +117,9 @@ if (!isset($_SESSION['user_id'])) {
 </head>
 <body>
     <div class="container message-container mt-4">
-        <a href="index.php?controller=home&action=<?= ($_SESSION['role'] === 'senior') ? 'dashboard' : 'family_dashboard' ?>" class="back-dashboard-btn">
-            <i class="fas fa-arrow-left"></i> Retour au tableau de bord
-        </a>
+             <a href="index.php?controller=home&action=<?= ($_SESSION['role'] === 'senior') ? 'dashboard' : 'family_dashboard' ?>" class="back-button">
+    <i class="fas fa-arrow-left"></i> Retour au tableau de bord
+</a>
         
         <h1 class="mb-4">Envoyer un message</h1>
         

@@ -2,7 +2,8 @@
 // Script global pour gérer les notifications sur toutes les pages du site SunnyLink
 
 // Configuration
-const NOTIFICATION_CHECK_INTERVAL = 30000; // 30 secondes
+var NOTIFICATION_CHECK_INTERVAL = 30000; // 30 secondes par défaut
+
 let notificationCheckTimer = null;
 let currentNotifications = [];
 let lastNotificationId = null;
@@ -162,7 +163,58 @@ function createNotificationElements() {
     
     console.log("Éléments DOM pour les notifications créés avec succès");
 }
+// Fonction pour forcer le rafraîchissement de toutes les notifications
+function forceRefreshNotifications() {
+    console.log("Forçage du rafraîchissement des notifications...");
+    
+    // 1. Effacer tout cache potentiel
+    if (typeof caches !== 'undefined') {
+        caches.keys().then(cacheNames => {
+            cacheNames.forEach(cacheName => {
+                if (cacheName.includes('notification')) {
+                    caches.delete(cacheName);
+                }
+            });
+        });
+    }
+    
+    // 2. Récupérer les notifications à jour
+    return fetch('index.php?controller=notification&action=getUserNotifications', {
+        headers: {
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log("Notifications actualisées:", data.length || 0);
+        
+        // Si on est sur le tableau de bord de la famille, rafraîchir la page
+        if (window.location.href.includes('family_dashboard')) {
+            window.location.reload();
+        }
+        
+        return data;
+    })
+    .catch(error => {
+        console.error("Erreur lors du rafraîchissement forcé des notifications:", error);
+        return [];
+    });
+}
 
+// Utiliser cette fonction après chaque action de marquage comme lu
+document.addEventListener('DOMContentLoaded', function() {
+    // Trouver tous les boutons de marquage comme lu
+    const readButtons = document.querySelectorAll('[data-notif-id]');
+    
+    readButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            // Attendre un peu puis forcer le rafraîchissement
+            setTimeout(forceRefreshNotifications, 1000);
+        });
+    });
+});
 // Démarrer le timer pour vérifier les notifications périodiquement
 function startNotificationTimer() {
     // Nettoyer l'ancien timer s'il existe

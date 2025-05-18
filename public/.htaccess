@@ -1,10 +1,35 @@
 <IfModule mod_rewrite.c>
     RewriteEngine On
-    RewriteCond %{ENV:REDIRECT_STATUS} ^$
+    
+    # Ne pas traiter les fichiers PHP avec le routeur
+    RewriteCond %{REQUEST_FILENAME} -f
+    RewriteRule \.php$ - [L]
+    
+    # Routing standard
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteRule ^(.*)$ index.php [QSA,L]
 </IfModule>
+
+# Définir les types MIME appropriés
+<IfModule mod_mime.c>
+    AddType application/javascript .js
+    AddType application/javascript .php
+    AddType application/json .json
+</IfModule>
+
+# En-têtes pour le Service Worker
+<IfModule mod_headers.c>
+    <FilesMatch "service-worker-js\.php$">
+        Header set Content-Type "application/javascript"
+        Header set Service-Worker-Allowed "/"
+    </FilesMatch>
+    
+    <FilesMatch ".*-js\.php$">
+        Header set Content-Type "application/javascript"
+    </FilesMatch>
+</IfModule>
+
 # Augmenter les limites pour les uploads audio
 php_value post_max_size 20M
 php_value upload_max_filesize 20M

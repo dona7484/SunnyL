@@ -1,6 +1,35 @@
+/**
+ * SunnyLink - Système de notifications
+ * Ce fichier contient toutes les fonctionnalités liées aux notifications.
+ */
 
-// Gestion du bouton de validation des notifications
-document.addEventListener('DOMContentLoaded', function() {
+// Variables globales
+let notificationCheckTimer = null;
+const NOTIFICATION_CHECK_INTERVAL = 30000; // 30 secondes
+
+/**
+ * Fonction d'initialisation du système de notification
+ * Cette fonction doit être appelée au chargement de la page
+ */
+function initNotifications() {
+    console.log('Initialisation du système de notifications...');
+    
+    // Vérifier les notifications immédiatement
+    checkForNewNotifications();
+    
+    // Configurer la vérification périodique des notifications
+    notificationCheckTimer = setInterval(checkForNewNotifications, NOTIFICATION_CHECK_INTERVAL);
+    
+    // Configurer le bouton de lecture des notifications si présent
+    setupMarkAsReadButton();
+    
+    console.log('Système de notifications initialisé avec succès');
+}
+
+/**
+ * Configure le bouton "Marquer comme lu" pour les notifications
+ */
+function setupMarkAsReadButton() {
     const markAsReadButton = document.getElementById('mark-as-read-button');
     if (markAsReadButton) {
         markAsReadButton.addEventListener('click', function() {
@@ -9,55 +38,18 @@ document.addEventListener('DOMContentLoaded', function() {
             const relatedId = this.getAttribute('data-related-id');
             
             if (notifId) {
-                fetch('index.php?controller=notification&action=markNotificationAsRead', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        notif_id: notifId,
-                        type: notifType,
-                        related_id: relatedId
-                    }),
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        // Cacher la bulle de notification
-                        const notifBubble = document.getElementById('notif-bubble');
-                        if (notifBubble) {
-                            notifBubble.classList.add('notification-hide');
-                            setTimeout(() => {
-                                notifBubble.style.display = 'none';
-                                notifBubble.classList.remove('notification-hide');
-                            }, 500);
-                        }
-                        
-                        // Rediriger vers la page appropriée selon le type de notification
-                        if (notifType === 'photo') {
-                            window.location.href = 'index.php?controller=photo&action=gallery';
-                        } else if (notifType === 'message' || notifType === 'audio') {
-                            window.location.href = 'index.php?controller=message&action=received';
-                        } else if (notifType === 'event') {
-                            window.location.href = 'index.php?controller=event&action=index';
-                        }
-                    } else {
-                        console.error('Erreur lors du marquage de la notification comme lue:', data.error);
-                    }
-                })
-                .catch(error => {
-                    console.error('Erreur lors de la requête:', error);
-                });
+                markNotificationAsRead(notifId, notifType, relatedId);
             }
         });
     }
-});
+}
 
-
-// Fonction pour vérifier les nouvelles notifications
-
+/**
+ * Vérifie s'il y a de nouvelles notifications
+ */
 function checkForNewNotifications() {
     console.log('Vérification des nouvelles notifications...');
+    
     fetch("index.php?controller=notification&action=getUserNotifications")
     .then(response => {
         // Vérifier si la réponse est JSON
@@ -89,7 +81,9 @@ function checkForNewNotifications() {
     });
 }
 
-// Fonction pour mettre à jour l'interface utilisateur avec les notifications
+/**
+ * Met à jour l'interface utilisateur avec les notifications
+ */
 function updateNotificationUI(notifications) {
     console.log('Mise à jour de l\'UI avec les notifications:', notifications);
     const bubble = document.getElementById("notif-bubble");
@@ -97,10 +91,7 @@ function updateNotificationUI(notifications) {
     const markAsReadBtn = document.getElementById("mark-as-read-button");
     
     if (!bubble || !bubbleText) {
-        console.error("Éléments d'UI de notification non trouvés:", {
-            bubble: !!bubble,
-            bubbleText: !!bubbleText
-        });
+        console.error("Éléments d'UI de notification non trouvés");
         return;
     }
     
@@ -151,10 +142,8 @@ function updateNotificationUI(notifications) {
         // Jouer le son de notification
         playNotificationSound();
         
-        // Lire le message à voix haute si la fonction est disponible
-        if (typeof speakMessage === 'function') {
-            speakMessage(notif.content);
-        }
+        // Lire le message à voix haute
+        speakMessage(notif.content);
     } else {
         console.log('Aucune notification à afficher');
         // Cacher la bulle s'il n'y a pas de notifications
@@ -162,7 +151,9 @@ function updateNotificationUI(notifications) {
     }
 }
 
-// Fonction pour marquer une notification comme lue
+/**
+ * Marque une notification comme lue
+ */
 function markNotificationAsRead(notifId, type, relatedId) {
     if (!notifId) return;
     
@@ -173,7 +164,11 @@ function markNotificationAsRead(notifId, type, relatedId) {
         headers: {
             "Content-Type": "application/json"
         },
-        body: JSON.stringify({ notif_id: notifId })
+        body: JSON.stringify({ 
+            notif_id: notifId,
+            type: type,
+            related_id: relatedId
+        })
     })
     .then(response => response.json())
     .then(data => {
@@ -181,7 +176,13 @@ function markNotificationAsRead(notifId, type, relatedId) {
         if (data.success) {
             // Cacher la bulle de notification
             const bubble = document.getElementById("notif-bubble");
-            if (bubble) bubble.style.display = "none";
+            if (bubble) {
+                bubble.classList.add('notification-hide');
+                setTimeout(() => {
+                    bubble.style.display = "none";
+                    bubble.classList.remove('notification-hide');
+                }, 500);
+            }
             
             // Rediriger en fonction du type de notification
             redirectBasedOnType(type, relatedId);
@@ -192,13 +193,13 @@ function markNotificationAsRead(notifId, type, relatedId) {
     });
 }
 
-// Fonction pour rediriger en fonction du type de notification
+/**
+ * Redirige l'utilisateur en fonction du type de notification
+ */
 function redirectBasedOnType(type, relatedId) {
     console.log('Redirection basée sur le type:', {type, relatedId});
     switch(type) {
         case 'message':
-            window.location.href = "index.php?controller=message&action=received";
-            break;
         case 'audio':
             window.location.href = "index.php?controller=message&action=received";
             break;
@@ -206,15 +207,21 @@ function redirectBasedOnType(type, relatedId) {
             window.location.href = "index.php?controller=photo&action=gallery";
             break;
         case 'event':
-            window.location.href = "index.php?controller=event&action=index";
+            if (relatedId) {
+                window.location.href = "index.php?controller=event&action=show&id=" + relatedId;
+            } else {
+                window.location.href = "index.php?controller=event&action=index";
+            }
             break;
         default:
-            // Ne pas rediriger pour les autres types
-            break;
+            // Recharger la page pour mettre à jour la liste des notifications
+            window.location.reload();
     }
 }
 
-// Fonction pour jouer le son de notification
+/**
+ * Joue le son de notification
+ */
 function playNotificationSound() {
     const audio = document.getElementById("notification-sound");
     if (audio) {
@@ -225,7 +232,9 @@ function playNotificationSound() {
     }
 }
 
-// Fonction pour lire le message à voix haute
+/**
+ * Lit le message à voix haute
+ */
 function speakMessage(message) {
     if ('speechSynthesis' in window) {
         // Annuler toute synthèse vocale en cours
@@ -243,19 +252,97 @@ function speakMessage(message) {
     }
 }
 
-// Fonction pour initialiser les notifications
-function initNotifications() {
-    console.log('Initialisation des notifications...');
-    // Vérifier les notifications au chargement
-    checkForNewNotifications();
+/**
+ * Affiche une notification avec les éléments donnés
+ */
+function showNotification(message, notifId, type, relatedId) {
+    console.log('Affichage de la notification:', { message, notifId, type, relatedId });
     
-    // Configurer la vérification périodique des notifications
-    setInterval(checkForNewNotifications, 30000); // Vérifier toutes les 30 secondes
+    // Récupérer les éléments
+    const bubble = document.getElementById('notif-bubble');
+    const bubbleText = document.getElementById('notif-bubble-text');
+    const typeLabel = document.querySelector('.notif-type-label');
+    const iconElement = document.querySelector('.notif-bubble-icon');
+    const button = document.getElementById('mark-as-read-button');
+    
+    if (!bubble || !bubbleText) {
+        console.error("Éléments de notification non trouvés dans le DOM");
+        return;
+    }
+    
+    // Mettre à jour le contenu de la notification
+    bubbleText.textContent = message;
+    
+    // Mettre à jour le type de notification
+    if (typeLabel) {
+        switch (type) {
+            case 'message':
+                typeLabel.textContent = 'Nouveau message';
+                break;
+            case 'audio':
+                typeLabel.textContent = 'Nouveau message audio';
+                break;
+            case 'photo':
+                typeLabel.textContent = 'Nouvelle photo';
+                break;
+            case 'event':
+                typeLabel.textContent = 'Nouvel événement';
+                break;
+            default:
+                typeLabel.textContent = 'Nouvelle notification';
+        }
+    }
+    
+    // Mettre à jour l'icône en fonction du type
+    if (iconElement) {
+        switch (type) {
+            case 'message':
+                iconElement.src = 'images/iconeMessage.png';
+                break;
+            case 'audio':
+                iconElement.src = 'images/iconeMusic.png';
+                break;
+            case 'photo':
+                iconElement.src = 'images/IconePhoto.png';
+                break;
+            case 'event':
+                iconElement.src = 'images/iconeAgenda.png';
+                break;
+            default:
+                iconElement.src = 'images/IconeRappel.png';
+        }
+    }
+    
+    // Mettre à jour les attributs du bouton
+    if (button) {
+        button.setAttribute('data-notif-id', notifId);
+        button.setAttribute('data-type', type || '');
+        button.setAttribute('data-related-id', relatedId || '');
+    }
+    
+    // Afficher la bulle
+    bubble.style.display = 'flex';
+    
+    // Jouer le son de notification
+    playNotificationSound();
+    
+    // Lire le message à voix haute
+    speakMessage(message);
 }
 
-// Exporter les fonctions pour les rendre disponibles globalement
-window.checkForNewNotifications = checkForNewNotifications;
-window.markNotificationAsRead = markNotificationAsRead;
-window.speakMessage = speakMessage;
-window.initNotifications = initNotifications;
-window.playNotificationSound = playNotificationSound;
+// Initialiser au chargement de la page
+document.addEventListener('DOMContentLoaded', function() {
+    // Exporter les fonctions globalement pour qu'elles soient accessibles partout
+    window.initNotifications = initNotifications;
+    window.checkForNewNotifications = checkForNewNotifications;
+    window.markNotificationAsRead = markNotificationAsRead;
+    window.speakMessage = speakMessage;
+    window.playNotificationSound = playNotificationSound;
+    window.showNotification = showNotification;
+    
+    // Appeler initNotifications() uniquement si elle n'a pas déjà été appelée
+    if (typeof window.notificationsInitialized === 'undefined') {
+        window.notificationsInitialized = true;
+        initNotifications();
+    }
+});

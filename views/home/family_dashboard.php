@@ -1,3 +1,13 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    
+
 <?php
 $title = "SunnyLink - Tableau de bord familial";
 ob_start();
@@ -33,6 +43,22 @@ $activities = Activity::getRecentActivities($userId, 5);
 ?>
 
 <div class="container family-dashboard mt-4">
+    <!-- Toast pour les nouvelles notifications -->
+<!-- Toast pour les notifications en temps réel -->
+<div class="toast-container position-fixed top-0 end-0 p-3">
+  <div id="notification-toast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+    <div class="toast-header">
+      <img src="images/IconeRappel.png" class="me-2" height="20" width="20" alt="">
+      <strong class="me-auto">Nouvelle notification</strong>
+      <small>À l'instant</small>
+      <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+    </div>
+  
+    <div class="toast-body">
+      Vous avez reçu une nouvelle notification.
+    </div>
+  </div>
+</div>
     <div class="row mb-4">
         <div class="col-12">
             <div class="d-flex justify-content-between align-items-center">
@@ -61,6 +87,7 @@ $activities = Activity::getRecentActivities($userId, 5);
                     <?php endif; ?>
                     </h4>
                 </div>
+             
                 <div class="card-body">
                     <?php if (empty($notifications)): ?>
                         <p class="text-center text-muted">Aucune notification non lue</p>
@@ -288,6 +315,35 @@ $activities = Activity::getRecentActivities($userId, 5);
 </div>
 
 <style>
+    /* Style amélioré pour le widget de notification */
+.family-notification-widget {
+    animation: highlight-new 2s ease;
+}
+
+@keyframes highlight-new {
+    0% { box-shadow: 0 4px 15px rgba(255, 215, 0, 0.7); }
+    100% { box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+}
+
+.badge {
+    animation: pulse-badge 2s infinite;
+}
+
+@keyframes pulse-badge {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.2); }
+    100% { transform: scale(1); }
+}
+
+/* Style pour le toast de notification */
+.toast {
+    opacity: 0.95;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.toast-header {
+    border-bottom: 2px solid #FFD700;
+}
     .family-dashboard {
         padding-bottom: 30px;
     }
@@ -506,8 +562,18 @@ document.addEventListener('DOMContentLoaded', function() {
     }, 30000); // Toutes les 30 secondes
 });
 </script>
-
+<!-- Script de mise à jour des notifications -->
+ <!-- Script de mise à jour en temps réel des notifications -->
+<script src="js/family-dashboard-updater.js"></script>
+<script src="js/notification-updater.js"></script>
+<!-- Audio préchargé pour les notifications -->
+<audio id="notification-sound" preload="auto" style="display:none;">
+    <source src="audio/notif-sound.mp3" type="audio/mpeg">
+</audio>
 <?php
 $content = ob_get_clean();
 require_once __DIR__ . '/../base.php';
 ?>
+
+</body>
+</html>

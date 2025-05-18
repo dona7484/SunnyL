@@ -394,5 +394,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 );
             }
         });
+    } else {
+        console.warn("Aucun ID utilisateur trouvé dans le DOM. La connexion WebSocket ne sera pas établie.");
     }
 });

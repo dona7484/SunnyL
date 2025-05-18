@@ -1,5 +1,4 @@
 {
-<<<<<<< HEAD
     "name": "dona7/sunny-link",
     "description": "pojet SunnyLink",
     "type": "project",
@@ -10,16 +9,14 @@
         }
     ],
     "require": {
+        "php": ">=8.1",
         "firebase/php-jwt": "^6.11",
         "vlucas/phpdotenv": "^5.6",
         "cboden/ratchet": "^0.4.4",
-        "monolog/monolog": "^3.8",
+        "monolog/monolog": "^2.9",
         "phpmailer/phpmailer": "^6.9",
-        "minishlink/web-push": "^9.0",
+        "minishlink/web-push": "^7.0",
         "jwilsson/spotify-web-api-php": "^6.2",
-=======
-    "require": {
->>>>>>> 268861770978b15539867bf256b062b5f5da3e9d
-        "twilio/sdk": "^8.5"
+        "twilio/sdk": "^7.0"
     }
 }

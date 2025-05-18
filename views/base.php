@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="/SunnyLink/public/css/styles.css">
     <link rel="stylesheet" href="/SunnyLink/public/css/notifications.css">
+    <link rel="stylesheet" href="/SunnyLink/public/css/notifications.css">
     
     <!-- Précharger les sons -->
     <link rel="preload" href="/SunnyLink/public/audio/notif-sound.mp3" as="audio">
@@ -34,6 +35,13 @@
             <span>Messages</span>
             <div id="message-badge" class="notification-badge" style="display: none;">0</div>
         </a>
+        <a href="/SunnyLink/public/index.php?controller=home&action=family_dashboard" class="family-nav-item">
+    <i class="fas fa-home"></i>
+    <span>Accueil</span>
+    <?php if (isset($unreadCount) && $unreadCount > 0): ?>
+    <span class="nav-notification-badge"><?= $unreadCount ?></span>
+    <?php endif; ?>
+</a>
         <a href="/SunnyLink/public/index.php?controller=photo&action=gallery" class="family-nav-item">
             <i class="fas fa-image"></i>
             <span>Photos</span>
@@ -65,14 +73,14 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     
     <!-- Système global de notifications -->
-    <script src="js/global-notifications.js"></script>
+    <!-- <script src="js/global-notifications.js"></script> -->
     
     <!-- Scripts spécifiques à l'application -->
-    <script src="/SunnyLink/public/js/main.js"></script>
+    <!-- <script src="/SunnyLink/public/js/main.js"></script> -->
     
     <?php if (isset($_SESSION['user_id'])): ?>
     <!-- Websocket pour les messages en temps réel (uniquement pour les utilisateurs connectés) -->
-    <script src="/SunnyLink/public/js/websocket.js"></script>
+    <!-- <script src="/SunnyLink/public/js/websocket.js"></script> -->
     <script>
         // Initialiser la connexion WebSocket si l'utilisateur est connecté
         document.addEventListener('DOMContentLoaded', function() {
@@ -182,7 +190,18 @@
             border-radius: 10px;
             position: relative;
         }
-   
+   .nav-notification-badge {
+    position: absolute;
+    top: 0;
+    right: 0;
+    background-color: #dc3545;
+    color: white;
+    border-radius: 50%;
+    padding: 2px 5px;
+    font-size: 10px;
+    min-width: 15px;
+    text-align: center;
+}
         
   
         /* Style spécifique pour les seniors (plus grand) */
@@ -206,5 +225,6 @@
         }
         <?php endif; ?>
     </style>
+    <script src="/SunnyLink/public/notifications-js.php"></script>
 </body>
 </html>

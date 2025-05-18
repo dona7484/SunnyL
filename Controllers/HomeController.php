@@ -56,34 +56,49 @@ class HomeController extends Controller {
             ]);
         }
     }
-
-    // Action pour afficher le tableau de bord du membre de la famille
-    public function family_dashboard() {
-        // Vérifier si l'utilisateur est connecté
-        if (!isset($_SESSION['user_id'])) {
-            header("Location: index.php?controller=auth&action=login");
-            exit;
-        }
-        
-        $role = $_SESSION['role'] ?? 'familymember';
-        $notifications = [];
-        $unreadCount = 0; // Initialiser la variable
-        
-        // Récupérer les notifications si l'utilisateur est connecté
-        if ($role === 'senior' || $role === 'familymember') {
-            $notificationModel = new NotificationModel();
-            $notifications = $notificationModel->getUnreadNotifications($_SESSION['user_id']);
-            $unreadCount = $notificationModel->getUnreadCount($_SESSION['user_id']);
-            error_log("Nombre de notifications non lues: $unreadCount"); // Log de débogage
-        }
-    
-        // Rendu du tableau de bord du membre de la famille
-        $this->render('home/family_dashboard', [
-            'role' => $role,
-            'notifications' => $notifications,
-            'unreadCount' => $unreadCount
-        ]);
+public function family_dashboard() {
+    if (!isset($_SESSION['user_id'])) {
+        header("Location: index.php?controller=auth&action=login");
+        exit;
     }
+    
+    $userId = $_SESSION['user_id'];
+    $notificationModel = new NotificationModel();
+    $notifications = $notificationModel->getUnreadNotifications($userId);
+    $unreadCount = count($notifications);
+    
+    $this->render('home/family_dashboard', [
+        'notifications' => $notifications,
+        'unreadCount' => $unreadCount
+    ]);
+}
+    // // Action pour afficher le tableau de bord du membre de la famille
+    // public function family_dashboard() {
+    //     // Vérifier si l'utilisateur est connecté
+    //     if (!isset($_SESSION['user_id'])) {
+    //         header("Location: index.php?controller=auth&action=login");
+    //         exit;
+    //     }
+        
+    //     $role = $_SESSION['role'] ?? 'familymember';
+    //     $notifications = [];
+    //     $unreadCount = 0; // Initialiser la variable
+        
+    //     // Récupérer les notifications si l'utilisateur est connecté
+    //     if ($role === 'senior' || $role === 'familymember') {
+    //         $notificationModel = new NotificationModel();
+    //         $notifications = $notificationModel->getUnreadNotifications($_SESSION['user_id']);
+    //         $unreadCount = $notificationModel->getUnreadCount($_SESSION['user_id']);
+    //         error_log("Nombre de notifications non lues: $unreadCount"); // Log de débogage
+    //     }
+    
+    //     // Rendu du tableau de bord du membre de la famille
+    //     $this->render('home/family_dashboard', [
+    //         'role' => $role,
+    //         'notifications' => $notifications,
+    //         'unreadCount' => $unreadCount
+    //     ]);
+    // }
     
     public function error() {
         $message = $_SESSION['error_message'] ?? 'Erreur inconnue';
