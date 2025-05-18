@@ -1,5 +1,4 @@
-// slideshow.js - Script pour le diaporama automatique sur le dashboard senior
-// Ce script détecte l'inactivité et lance un diaporama des photos envoyées au senior
+// Modification du fichier public/js/slideshow.js pour gérer les notifications pendant le diaporama
 
 class SlideshowManager {
     constructor(options = {}) {
@@ -18,14 +17,17 @@ class SlideshowManager {
         this.isActive = false;
         this.photos = [];
         this.currentPhotoIndex = 0;
-
+        this.isPaused = false; // Nouvel état pour savoir si le diaporama est en pause (pendant une notification)
+        
         // Créer le conteneur de diaporama s'il n'existe pas
         this.createSlideshowContainer();
-
+        
         // Lier les méthodes au contexte actuel
         this.resetInactivityTimer = this.resetInactivityTimer.bind(this);
         this.startSlideshow = this.startSlideshow.bind(this);
         this.stopSlideshow = this.stopSlideshow.bind(this);
+        this.pauseSlideshow = this.pauseSlideshow.bind(this); // Nouvelle méthode pour mettre en pause
+        this.resumeSlideshow = this.resumeSlideshow.bind(this); // Nouvelle méthode pour reprendre
         this.showNextPhoto = this.showNextPhoto.bind(this);
         this.loadPhotos = this.loadPhotos.bind(this);
     }
@@ -33,28 +35,74 @@ class SlideshowManager {
     // Initialiser le système de diaporama
     init() {
         console.log('Initialisation du système de diaporama...');
-
+        
         // Événements pour détecter l'activité de l'utilisateur
         document.addEventListener('mousemove', this.resetInactivityTimer);
         document.addEventListener('mousedown', this.resetInactivityTimer);
         document.addEventListener('keypress', this.resetInactivityTimer);
         document.addEventListener('touchstart', this.resetInactivityTimer);
         document.addEventListener('scroll', this.resetInactivityTimer);
-
+        
         // Événement pour stopper le diaporama lors d'une interaction
         document.getElementById(this.options.containerId).addEventListener('click', this.stopSlideshow);
-
+        
+        // Écouter les événements de notification globaux
+        document.addEventListener('notification:received', this.pauseSlideshow);
+        document.addEventListener('notification:closed', this.resumeSlideshow);
+        
         // Démarrer le timer d'inactivité
         this.resetInactivityTimer();
-
+        
         // Charger les photos initialement
         this.loadPhotos();
-
+        
         console.log('Système de diaporama initialisé');
+    }
+
+    // Méthode pour mettre en pause le diaporama (lors d'une notification)
+    pauseSlideshow() {
+        if (!this.isActive) return;
+        
+        console.log('Diaporama mis en pause pour afficher une notification');
+        
+        // Mettre en pause le diaporama
+        this.isPaused = true;
+        
+        // Arrêter le timer actuel
+        if (this.slideshowTimer) {
+            clearInterval(this.slideshowTimer);
+            this.slideshowTimer = null;
+        }
+        
+        // Réduire l'opacité du diaporama pour rendre la notification plus visible
+        const container = document.getElementById(this.options.containerId);
+        if (container) {
+            container.style.opacity = '0.3'; // Réduire l'opacité pour voir la notification
+        }
+    }
+
+    // Méthode pour reprendre le diaporama après une notification
+    resumeSlideshow() {
+        if (!this.isActive || !this.isPaused) return;
+        
+        console.log('Reprise du diaporama après la notification');
+        
+        // Restaurer l'opacité du diaporama
+        const container = document.getElementById(this.options.containerId);
+        if (container) {
+            container.style.opacity = '1';
+        }
+        
+        // Reprendre le diaporama
+        this.isPaused = false;
+        
+        // Redémarrer le timer pour faire défiler les photos
+        this.slideshowTimer = setInterval(this.showNextPhoto, this.options.slideDuration);
     }
 
     // Créer le conteneur pour le diaporama
     createSlideshowContainer() {
+        // Code existant inchangé
         if (!document.getElementById(this.options.containerId)) {
             console.log('Création du conteneur de diaporama');
             const container = document.createElement('div');
@@ -74,7 +122,7 @@ class SlideshowManager {
                 opacity: 0;
                 transition: opacity 0.5s ease;
             `;
-
+            
             // Ajouter un élément pour afficher l'image
             const imgElement = document.createElement('img');
             imgElement.id = 'slideshow-image';
@@ -87,7 +135,7 @@ class SlideshowManager {
                 transition: opacity 0.3s ease;
             `;
             container.appendChild(imgElement);
-
+            
             // Ajouter un bouton de fermeture
             const closeButton = document.createElement('button');
             closeButton.id = 'slideshow-close';
@@ -104,7 +152,7 @@ class SlideshowManager {
             `;
             closeButton.addEventListener('click', this.stopSlideshow);
             container.appendChild(closeButton);
-
+            
             // Ajouter un élément pour le message/titre
             const captionElement = document.createElement('div');
             captionElement.id = 'slideshow-caption';
@@ -120,7 +168,7 @@ class SlideshowManager {
                 background-color: rgba(0, 0, 0, 0.5);
             `;
             container.appendChild(captionElement);
-
+            
             // Ajouter au body
             document.body.appendChild(container);
         }
@@ -130,12 +178,12 @@ class SlideshowManager {
     resetInactivityTimer() {
         // Si le diaporama est déjà actif, ne rien faire
         if (this.isActive) return;
-
+        
         // Effacer le timer existant
         if (this.inactivityTimer) {
             clearTimeout(this.inactivityTimer);
         }
-
+        
         // Définir un nouveau timer
         this.inactivityTimer = setTimeout(() => {
             console.log(`Inactivité détectée après ${this.options.inactivityTime / 1000} secondes`);
@@ -145,8 +193,9 @@ class SlideshowManager {
 
     // Charger les photos depuis l'API
     loadPhotos() {
+        // Code existant inchangé
         console.log('Chargement des photos pour le diaporama...');
-
+        
         fetch(this.options.fetchUrl)
             .then(response => {
                 if (!response.ok) {
@@ -158,7 +207,7 @@ class SlideshowManager {
                 if (Array.isArray(data) && data.length > 0) {
                     this.photos = data;
                     console.log(`${this.photos.length} photos chargées pour le diaporama`);
-
+                    
                     // Si aucune photo n'est chargée, on réessaye après un délai
                     if (this.photos.length === 0) {
                         setTimeout(this.loadPhotos, 60000); // Réessayer dans 1 minute
@@ -177,58 +226,70 @@ class SlideshowManager {
     // Démarrer le diaporama
     startSlideshow() {
         console.log('Démarrage du diaporama...');
-
+        
         // Si pas de photos, essayer de les charger à nouveau
         if (this.photos.length === 0) {
             this.loadPhotos();
             console.log('Aucune photo disponible, le diaporama ne démarre pas');
             return;
         }
-
+        
         this.isActive = true;
-
+        this.isPaused = false;
+        
+        // Vérifier s'il y a une notification active
+        const notifBubble = document.getElementById('notif-bubble');
+        if (notifBubble && notifBubble.style.display !== 'none') {
+            // Si une notification est visible, mettre le diaporama en pause immédiatement
+            this.isPaused = true;
+            console.log('Notification active détectée, diaporama démarré en mode pause');
+        }
+        
         // Afficher le conteneur du diaporama
         const container = document.getElementById(this.options.containerId);
         container.style.display = 'flex';
-
+        
         // Animation d'entrée
         setTimeout(() => {
             container.style.opacity = '1';
         }, 10);
-
+        
         // Réinitialiser l'index et afficher la première photo
         this.currentPhotoIndex = 0;
         this.showNextPhoto();
-
-        // Démarrer le timer pour faire défiler les photos
-        this.slideshowTimer = setInterval(this.showNextPhoto, this.options.slideDuration);
-
+        
+        // Démarrer le timer pour faire défiler les photos (seulement si pas en pause)
+        if (!this.isPaused) {
+            this.slideshowTimer = setInterval(this.showNextPhoto, this.options.slideDuration);
+        }
+        
         console.log('Diaporama démarré');
     }
 
     // Arrêter le diaporama
     stopSlideshow() {
         console.log('Arrêt du diaporama...');
-
+        
         if (this.slideshowTimer) {
             clearInterval(this.slideshowTimer);
             this.slideshowTimer = null;
         }
-
+        
         this.isActive = false;
-
+        this.isPaused = false;
+        
         // Animation de sortie
         const container = document.getElementById(this.options.containerId);
         container.style.opacity = '0';
-
+        
         // Cacher le conteneur après l'animation
         setTimeout(() => {
             container.style.display = 'none';
         }, 500);
-
+        
         // Réinitialiser le timer d'inactivité
         this.resetInactivityTimer();
-
+        
         console.log('Diaporama arrêté');
     }
 
@@ -238,26 +299,26 @@ class SlideshowManager {
             this.stopSlideshow();
             return;
         }
-
+        
         const photo = this.photos[this.currentPhotoIndex];
         const imgElement = document.getElementById('slideshow-image');
         const captionElement = document.getElementById('slideshow-caption');
-
+        
         // Animation de transition
         imgElement.style.opacity = '0';
-
+        
         // Changer l'image après un court délai
         setTimeout(() => {
             // Mettre à jour l'image
             imgElement.src = photo.url;
-
+            
             // Mettre à jour la légende
             captionElement.textContent = photo.message || '';
-
+            
             // Rendre l'image visible
             imgElement.style.opacity = '1';
         }, 300);
-
+        
         // Passer à l'image suivante
         this.currentPhotoIndex = (this.currentPhotoIndex + 1) % this.photos.length;
     }
@@ -271,9 +332,9 @@ function initSlideshow() {
         slideDuration: 7000, // 7 secondes par photo
         fetchUrl: 'index.php?controller=photo&action=getAllForSlideshow' // URL pour récupérer les photos
     });
-
+    
     slideshow.init();
-
+    
     // Rendre accessible globalement pour le débogage
     window.slideshowManager = slideshow;
 }

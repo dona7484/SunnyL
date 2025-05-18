@@ -24,6 +24,7 @@ $activities = Activity::getRecentActivities($_SESSION['user_id'], 10);
   <meta charset="UTF-8">
   <title>Dashboard Senior - SunnyLink</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -106,25 +107,24 @@ $activities = Activity::getRecentActivities($_SESSION['user_id'], 10);
     }
     
     /* Styles améliorés pour la bulle de notification */
-    .notif-bubble {
-      position: fixed;
-      top: 20%;
-      left: 50%;
-      transform: translateX(-50%);
-      background-color: #fff; /* Fond blanc pour plus de clarté */
-      border-left: 5px solid #ffc107; /* Bordure latérale colorée */
-      border-radius: 12px;
-      padding: 25px 30px;
-      display: flex;
-      align-items: center;
-      gap: 20px;
-      box-shadow: 0 8px 20px rgba(0,0,0,0.15); /* Ombre plus douce et plus profonde */
-      z-index: 9999;
-      animation: slideInDown 0.5s ease, pulse 2s infinite ease-in-out; /* Animation d'entrée et pulsation légère */
-      width: 80%;
-      max-width: 600px;
-      transition: all 0.3s ease; /* Transition fluide pour toutes les propriétés */
-    }
+.notif-bubble {
+    position: fixed;
+    top: 20%;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #fff;
+    border-left: 5px solid #ffc107;
+    border-radius: 12px;
+    padding: 25px 30px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+    z-index: 10000; /* Augmenté pour être au-dessus du diaporama */
+    width: 80%;
+    max-width: 600px;
+    transition: all 0.3s ease;
+}
 
     .notif-bubble-icon {
       width: 70px;
@@ -182,18 +182,16 @@ $activities = Activity::getRecentActivities($_SESSION['user_id'], 10);
       100% { box-shadow: 0 8px 20px rgba(0,0,0,0.15); }
     }
     
-    /* Animation d'entrée */
-    @keyframes notification-in {
-      0% { opacity: 0; transform: translate(-50%, -30px); }
-      100% { opacity: 1; transform: translate(-50%, 0); }
-    }
+    keyframes notification-in {
+    0% { opacity: 0; transform: translate(-50%, -30px); }
+    100% { opacity: 1; transform: translate(-50%, 0); }
+}
 
-    /* Animation de sortie */
-    @keyframes notification-out {
-      0% { opacity: 1; transform: translate(-50%, 0); }
-      100% { opacity: 0; transform: translate(-50%, -30px); }
-    }
-
+/* Animation de sortie pour les notifications */
+@keyframes notification-out {
+    0% { opacity: 1; transform: translate(-50%, 0); }
+    100% { opacity: 0; transform: translate(-50%, -30px); }
+}
     .notification-show {
       animation: notification-in 0.5s forwards;
     }
@@ -209,6 +207,48 @@ $activities = Activity::getRecentActivities($_SESSION['user_id'], 10);
       text-transform: uppercase;
       letter-spacing: 1px;
     }
+ Lorsqu'une notification est affichée pendant le diaporama, appliquer ces styles spéciaux */
+.notif-bubble.over-slideshow {
+    background-color: rgba(255, 255, 255, 0.95); /* Plus opaque */
+    box-shadow: 0 0 30px rgba(255, 255, 255, 0.3);
+    border-width: 5px; /* Bordure plus épaisse */
+    transform: translate(-50%, 0) scale(1.05); /* Légèrement plus grand */
+}
+
+/* Conteneur de diaporama lorsqu'une notification est affichée */
+.slideshow-container.notification-active {
+    opacity: 0.3 !important; /* Forcer une faible opacité */
+    filter: blur(2px); /* Ajouter un flou */
+}
+
+/* Le bouton de notification doit être plus visible pendant le diaporama */
+.notif-bubble.over-slideshow .notif-button {
+    transform: scale(1.1);
+    box-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+}
+
+/* Au survol du bouton de notification */
+.notif-button:hover {
+    transform: scale(1.15) !important;
+    background-color: #45a049;
+}
+
+/* Styles pour améliorer la lisibilité du texte de notification sur le diaporama */
+.notif-bubble.over-slideshow .notif-bubble-text {
+    font-size: 26px;
+    text-shadow: 0 0 2px rgba(0, 0, 0, 0.2);
+}
+
+/* Animation de pulsation pour attirer l'attention sur la notification */
+@keyframes pulse-attention {
+    0% { box-shadow: 0 8px 20px rgba(0,0,0,0.15); }
+    50% { box-shadow: 0 8px 30px rgba(255, 193, 7, 0.4); }
+    100% { box-shadow: 0 8px 20px rgba(0,0,0,0.15); }
+}
+
+.notif-bubble.over-slideshow {
+    animation: pulse-attention 2s infinite;
+}
 
     .notif-timestamp {
       font-size: 14px;
@@ -342,6 +382,22 @@ $activities = Activity::getRecentActivities($_SESSION['user_id'], 10);
         padding: 10px;
         background-color: rgba(0, 0, 0, 0.5);
     }
+    #voice-control-btn.active {
+    background-color: #dc3545; /* Rouge quand actif */
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7); }
+    70% { box-shadow: 0 0 0 10px rgba(220, 53, 69, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0); }
+}
+
+#voice-status {
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    font-family: 'Arial', sans-serif;
+    text-align: center;
+}
   </style>
 </head>
 <body>
@@ -350,7 +406,23 @@ $activities = Activity::getRecentActivities($_SESSION['user_id'], 10);
     <img src="images/IconeSourdine.png" alt="Volume" onclick="toggleVolume()">
     <span>SunnyLink</span>
   </div>
-  <button id="enable-sound" class="btn btn-primary">Activer les sons de notification</button>
+  <div class="d-flex align-items-center justify-content-end" style="gap: 16px;">
+  <button id="enable-sound" class="btn btn-primary">
+    <i class="fas fa-volume-up"></i> Activer les sons
+  </button>
+  
+  <button id="voice-control-btn" class="btn btn-success">
+    <i class="fas fa-microphone"></i> Contrôle vocal
+  </button>
+  
+  <a href="index.php?controller=parametres&action=index" class="btn btn-settings">
+    <i class="fa fa-gear fa-2x text-dark" style="vertical-align: middle;"></i>
+  </a>
+  
+  <a href="index.php?controller=auth&action=logout" class="btn btn-outline-danger">
+    <i class="fas fa-sign-out-alt"></i> Déconnexion
+  </a>
+</div>
   <div class="d-flex align-items-center justify-content-end" style="gap: 16px;">
   <a href="index.php?controller=parametres&action=index" class="btn btn-settings">
     <i class="fa fa-gear fa-2x text-dark" style="vertical-align: middle;"></i>
@@ -781,5 +853,347 @@ $activities = Activity::getRecentActivities($_SESSION['user_id'], 10);
 </script>
 
 <script src="/SunnyLink/public/js/slideshow.js"></script>
+<!-- Ajoutez ce code juste avant la fermeture de la balise </body> dans views/home/dashboard.php -->
+<script>
+// Script de diaporama en ligne pour le débogage
+class SlideshowManager {
+    constructor(options = {}) {
+        // Options par défaut
+        this.options = {
+            inactivityTime: 60000, // Temps d'inactivité avant le lancement du diaporama (1 minute par défaut)
+            slideDuration: 5000, // Durée d'affichage de chaque image (5 secondes par défaut)
+            containerId: 'slideshow-container', // ID du conteneur pour le diaporama
+            fetchUrl: 'index.php?controller=photo&action=getAllForSlideshow', // URL pour récupérer les photos
+            ...options // Fusion avec les options fournies
+        };
+
+        // État interne
+        this.inactivityTimer = null;
+        this.slideshowTimer = null;
+        this.isActive = false;
+        this.photos = [];
+        this.currentPhotoIndex = 0;
+        
+        // Créer le conteneur de diaporama s'il n'existe pas
+        this.createSlideshowContainer();
+        
+        // Lier les méthodes au contexte actuel
+        this.resetInactivityTimer = this.resetInactivityTimer.bind(this);
+        this.startSlideshow = this.startSlideshow.bind(this);
+        this.stopSlideshow = this.stopSlideshow.bind(this);
+        this.showNextPhoto = this.showNextPhoto.bind(this);
+        this.loadPhotos = this.loadPhotos.bind(this);
+    }
+
+    // Initialiser le système de diaporama
+    init() {
+        console.log('Initialisation du système de diaporama...');
+        
+        // Événements pour détecter l'activité de l'utilisateur
+        document.addEventListener('mousemove', this.resetInactivityTimer);
+        document.addEventListener('mousedown', this.resetInactivityTimer);
+        document.addEventListener('keypress', this.resetInactivityTimer);
+        document.addEventListener('touchstart', this.resetInactivityTimer);
+        document.addEventListener('scroll', this.resetInactivityTimer);
+        
+        // Événement pour stopper le diaporama lors d'une interaction
+        const container = document.getElementById(this.options.containerId);
+        if (container) {
+            container.addEventListener('click', this.stopSlideshow);
+        }
+        
+        // Démarrer le timer d'inactivité
+        this.resetInactivityTimer();
+        
+        // Charger les photos initialement
+        this.loadPhotos();
+        
+        console.log('Système de diaporama initialisé');
+    }
+
+    // Créer le conteneur pour le diaporama
+    createSlideshowContainer() {
+        if (!document.getElementById(this.options.containerId)) {
+            console.log('Création du conteneur de diaporama');
+            const container = document.createElement('div');
+            container.id = this.options.containerId;
+            container.className = 'slideshow-container';
+            container.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background-color: rgba(0, 0, 0, 0.9);
+                display: none;
+                justify-content: center;
+                align-items: center;
+                z-index: 9999;
+                opacity: 0;
+                transition: opacity 0.5s ease;
+            `;
+            
+            // Ajouter un élément pour afficher l'image
+            const imgElement = document.createElement('img');
+            imgElement.id = 'slideshow-image';
+            imgElement.style.cssText = `
+                max-width: 90%;
+                max-height: 80%;
+                object-fit: contain;
+                box-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
+                border-radius: 8px;
+                transition: opacity 0.3s ease;
+            `;
+            container.appendChild(imgElement);
+            
+            // Ajouter un bouton de fermeture
+            const closeButton = document.createElement('button');
+            closeButton.id = 'slideshow-close';
+            closeButton.innerHTML = '&times;';
+            closeButton.style.cssText = `
+                position: absolute;
+                top: 20px;
+                right: 30px;
+                font-size: 40px;
+                color: white;
+                background: none;
+                border: none;
+                cursor: pointer;
+            `;
+            closeButton.addEventListener('click', this.stopSlideshow);
+            container.appendChild(closeButton);
+            
+            // Ajouter un élément pour le message/titre
+            const captionElement = document.createElement('div');
+            captionElement.id = 'slideshow-caption';
+            captionElement.style.cssText = `
+                position: absolute;
+                bottom: 50px;
+                left: 0;
+                width: 100%;
+                text-align: center;
+                color: white;
+                font-size: 24px;
+                padding: 10px;
+                background-color: rgba(0, 0, 0, 0.5);
+            `;
+            container.appendChild(captionElement);
+            
+            // Ajouter au body
+            document.body.appendChild(container);
+        }
+    }
+
+    // Réinitialiser le timer d'inactivité
+    resetInactivityTimer() {
+        // Si le diaporama est déjà actif, ne rien faire
+        if (this.isActive) return;
+        
+        // Effacer le timer existant
+        if (this.inactivityTimer) {
+            clearTimeout(this.inactivityTimer);
+        }
+        
+        // Définir un nouveau timer
+        this.inactivityTimer = setTimeout(() => {
+            console.log(`Inactivité détectée après ${this.options.inactivityTime / 1000} secondes`);
+            this.startSlideshow();
+        }, this.options.inactivityTime);
+    }
+
+    // Charger les photos depuis l'API
+    loadPhotos() {
+        console.log('Chargement des photos pour le diaporama...');
+        
+        fetch(this.options.fetchUrl)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Erreur HTTP: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('Réponse API diaporama:', data);
+                
+                if (Array.isArray(data) && data.length > 0) {
+                    this.photos = data;
+                    console.log(`${this.photos.length} photos chargées pour le diaporama`);
+                } else {
+                    console.log('Aucune photo disponible pour le diaporama');
+                    setTimeout(this.loadPhotos, 60000); // Réessayer dans 1 minute
+                }
+            })
+            .catch(error => {
+                console.error('Erreur lors du chargement des photos:', error);
+                setTimeout(this.loadPhotos, 60000); // Réessayer dans 1 minute en cas d'erreur
+            });
+    }
+
+    // Démarrer le diaporama
+    startSlideshow() {
+        console.log('Démarrage du diaporama...');
+        
+        // Si pas de photos, essayer de les charger à nouveau
+        if (this.photos.length === 0) {
+            this.loadPhotos();
+            console.log('Aucune photo disponible, chargement en cours...');
+            
+            // Essayer de démarrer après un délai pour laisser le temps de charger
+            setTimeout(() => {
+                if (this.photos.length > 0) {
+                    this.startSlideshow();
+                } else {
+                    console.log('Démarrage annulé: aucune photo disponible');
+                    alert('Aucune photo disponible pour le diaporama.');
+                }
+            }, 2000);
+            return;
+        }
+        
+        this.isActive = true;
+        
+        // Afficher le conteneur du diaporama
+        const container = document.getElementById(this.options.containerId);
+        container.style.display = 'flex';
+        
+        // Animation d'entrée
+        setTimeout(() => {
+            container.style.opacity = '1';
+        }, 10);
+        
+        // Réinitialiser l'index et afficher la première photo
+        this.currentPhotoIndex = 0;
+        this.showNextPhoto();
+        
+        // Démarrer le timer pour faire défiler les photos
+        this.slideshowTimer = setInterval(this.showNextPhoto, this.options.slideDuration);
+        
+        console.log('Diaporama démarré');
+    }
+
+    // Arrêter le diaporama
+    stopSlideshow() {
+        console.log('Arrêt du diaporama...');
+        
+        if (this.slideshowTimer) {
+            clearInterval(this.slideshowTimer);
+            this.slideshowTimer = null;
+        }
+        
+        this.isActive = false;
+        
+        // Animation de sortie
+        const container = document.getElementById(this.options.containerId);
+        container.style.opacity = '0';
+        
+        // Cacher le conteneur après l'animation
+        setTimeout(() => {
+            container.style.display = 'none';
+        }, 500);
+        
+        // Réinitialiser le timer d'inactivité
+        this.resetInactivityTimer();
+        
+        console.log('Diaporama arrêté');
+    }
+
+    // Afficher la photo suivante
+    showNextPhoto() {
+        if (this.photos.length === 0) {
+            this.stopSlideshow();
+            return;
+        }
+        
+        const photo = this.photos[this.currentPhotoIndex];
+        const imgElement = document.getElementById('slideshow-image');
+        const captionElement = document.getElementById('slideshow-caption');
+        
+        // Animation de transition
+        imgElement.style.opacity = '0';
+        
+        // Changer l'image après un court délai
+        setTimeout(() => {
+            // Mettre à jour l'image
+            let imgUrl = photo.url;
+            if (imgUrl && !imgUrl.startsWith('http') && !imgUrl.startsWith('/')) {
+                imgUrl = '/' + imgUrl;
+            }
+            imgElement.src = imgUrl;
+            
+            // Mettre à jour la légende
+            captionElement.textContent = photo.message || '';
+            
+            // Rendre l'image visible
+            imgElement.style.opacity = '1';
+        }, 300);
+        
+        // Passer à l'image suivante
+        this.currentPhotoIndex = (this.currentPhotoIndex + 1) % this.photos.length;
+    }
+}
+
+// Fonction d'initialisation globale
+function initSlideshow() {
+    console.log('Initialisation du diaporama (inline)...');
+    // Créer et initialiser le gestionnaire de diaporama
+    const slideshow = new SlideshowManager({
+        inactivityTime: 60000, // 1 minute d'inactivité avant démarrage
+        slideDuration: 7000, // 7 secondes par photo
+        fetchUrl: 'index.php?controller=photo&action=getAllForSlideshow' // URL pour récupérer les photos
+    });
+    
+    slideshow.init();
+    
+    // Rendre accessible globalement pour le débogage
+    window.slideshowManager = slideshow;
+    
+    return slideshow;
+}
+
+// Initialiser au chargement de la page
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM chargé, initialisation du diaporama...');
+    initSlideshow();
+});
+
+// Ajouter un événement pour le bouton de test
+document.addEventListener('DOMContentLoaded', function() {
+    const testBtn = document.getElementById('start-slideshow-test');
+    if (testBtn) {
+        testBtn.addEventListener('click', function() {
+            console.log('Test du diaporama demandé...');
+            
+            // Vérifier si le gestionnaire de diaporama est disponible
+            if (window.slideshowManager) {
+                console.log('Lancement manuel du diaporama');
+                window.slideshowManager.startSlideshow();
+            } else {
+                console.error('Gestionnaire de diaporama non disponible!');
+                alert('Erreur: Le gestionnaire de diaporama n\'est pas initialisé.');
+                
+                // Tentative de réinitialisation
+                window.slideshowManager = initSlideshow();
+                
+                // Nouvel essai après initialisation
+                setTimeout(() => {
+                    if (window.slideshowManager) {
+                        window.slideshowManager.startSlideshow();
+                    } else {
+                        alert('Échec de l\'initialisation du diaporama!');
+                    }
+                }, 1000);
+            }
+        });
+    }
+});
+</script>
+
+<script src="js/voice-controls.js"></script>
+<!-- Bouton de test -->
+<div class="diaporama-debug" style="position: fixed; bottom: 20px; right: 20px; z-index: 100;">
+    <button id="start-slideshow-test" class="btn btn-info">
+        <i class="fas fa-play"></i> Tester Diaporama
+    </button>
+</div>
 </body>
 </html>

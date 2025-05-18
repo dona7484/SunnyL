@@ -256,9 +256,12 @@
             </div>
         <?php endif; ?>
         
-        <div class="text-center mt-4">
-            <a href="index.php?controller=photo&action=form" class="btn btn-primary">Envoyer une nouvelle photo</a>
-        </div>
+        <!-- Bouton d'ajout de photo seulement si NON senior -->
+        <?php if ($_SESSION['role'] !== 'senior'): ?>
+            <div class="text-center mt-4">
+                <a href="index.php?controller=photo&action=form" class="btn btn-primary">Envoyer une nouvelle photo</a>
+            </div>
+        <?php endif; ?>
     </div>
     
     <!-- Modal pour afficher la photo agrandie -->

@@ -65,7 +65,7 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     
     <!-- Système global de notifications -->
-    <script src="/SunnyLink/public/js/global-notifications.js"></script>
+    <script src="js/global-notifications.js"></script>
     
     <!-- Scripts spécifiques à l'application -->
     <script src="/SunnyLink/public/js/main.js"></script>
