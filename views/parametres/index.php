@@ -177,49 +177,144 @@
                 <i class="fas fa-lock"></i> Sécurité
             </h4>
             
-            <form method="post" action="index.php?controller=parametres&action=updatePassword" class="mb-4">
-                <?php if($_SESSION['role'] === 'senior'): ?>
-                <!-- Version senior (une colonne) -->
-                <div class="mb-3">
-                    <label for="new_password" class="form-label fw-bold fs-5">Nouveau mot de passe</label>
-                    <input type="password" class="form-control form-control-lg" id="new_password" name="new_password" 
-                           placeholder="Nouveau mot de passe" required>
-                </div>
-                <div class="mb-3">
-                    <label for="confirm_password" class="form-label fw-bold fs-5">Confirmer le mot de passe</label>
-                    <input type="password" class="form-control form-control-lg" id="confirm_password" 
-                           placeholder="Confirmer le mot de passe" required oninput="checkPasswordMatch()">
-                    <div id="password-match-message" class="form-text text-danger d-none">
-                        Les mots de passe ne correspondent pas
-                    </div>
-                </div>
-                <?php else: ?>
-                <!-- Version famille (deux colonnes) -->
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="mb-3">
-                            <label for="new_password" class="form-label fw-bold">Nouveau mot de passe</label>
-                            <input type="password" class="form-control" id="new_password" name="new_password" 
-                                   placeholder="Nouveau mot de passe" required>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="mb-3">
-                            <label for="confirm_password" class="form-label fw-bold">Confirmer le mot de passe</label>
-                            <input type="password" class="form-control" id="confirm_password" 
-                                   placeholder="Confirmer le mot de passe" required oninput="checkPasswordMatch()">
-                            <div id="password-match-message" class="form-text text-danger d-none">
-                                Les mots de passe ne correspondent pas
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <?php endif; ?>
-                
-                <button type="submit" class="btn btn-warning <?= ($_SESSION['role'] === 'senior') ? 'btn-lg' : ''; ?>" id="change-password-btn">
-                    <i class="fas fa-key"></i> Modifier le mot de passe
-                </button>
-            </form>
+           <!-- Dans le formulaire de changement de mot de passe -->
+<form method="POST" action="index.php?controller=parametres&action=updatePassword">
+    <input type="hidden" name="csrf_token" value="<?= $this->generateCSRFToken() ?>">
+    
+    <div class="mb-3">
+        <label for="current_password" class="form-label">Mot de passe actuel</label>
+        <input type="password" class="form-control" id="current_password" name="current_password" required>
+    </div>
+    
+    <div class="mb-3">
+        <label for="new_password" class="form-label">Nouveau mot de passe</label>
+        <input type="password" class="form-control" id="new_password" name="new_password" required minlength="8">
+        <div class="password-strength-meter mt-2">
+            <div class="progress">
+                <div id="password-strength-bar" class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+            </div>
+            <div id="password-strength-text" class="form-text text-muted">
+                Force du mot de passe: Trop faible
+            </div>
+        </div>
+        <div class="form-text">
+            Le mot de passe doit contenir au moins 8 caractères, une majuscule, une minuscule et un chiffre.
+        </div>
+    </div>
+    
+    <div class="mb-3">
+        <label for="confirm_password" class="form-label">Confirmer le mot de passe</label>
+        <input type="password" class="form-control" id="confirm_password" name="confirm_password" required minlength="8">
+        <div id="password-match-message" class="form-text"></div>
+    </div>
+    
+    <button type="submit" class="btn btn-primary" id="submit-button" disabled>Modifier le mot de passe</button>
+</form>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const newPasswordInput = document.getElementById('new_password');
+    const confirmPasswordInput = document.getElementById('confirm_password');
+    const strengthBar = document.getElementById('password-strength-bar');
+    const strengthText = document.getElementById('password-strength-text');
+    const matchMessage = document.getElementById('password-match-message');
+    const submitButton = document.getElementById('submit-button');
+    
+    // Fonction pour valider la force du mot de passe
+    function validatePasswordStrength(password) {
+        let strength = 0;
+        
+        // Vérifier la longueur
+        if (password.length >= 8) {
+            strength += 25;
+        }
+        
+        // Vérifier les majuscules
+        if (password.match(/[A-Z]/)) {
+            strength += 25;
+        }
+        
+        // Vérifier les minuscules
+        if (password.match(/[a-z]/)) {
+            strength += 25;
+        }
+        
+        // Vérifier les chiffres
+        if (password.match(/[0-9]/)) {
+            strength += 25;
+        }
+        
+        return strength;
+    }
+    
+    // Fonction pour mettre à jour l'indicateur de force
+    function updateStrengthMeter() {
+        const password = newPasswordInput.value;
+        const strength = validatePasswordStrength(password);
+        
+        // Mettre à jour la barre de progression
+        strengthBar.style.width = strength + '%';
+        strengthBar.setAttribute('aria-valuenow', strength);
+        
+        // Changer la couleur et le texte en fonction de la force
+        if (strength < 50) {
+            strengthBar.className = 'progress-bar bg-danger';
+            strengthText.textContent = 'Force du mot de passe: Faible';
+        } else if (strength < 100) {
+            strengthBar.className = 'progress-bar bg-warning';
+            strengthText.textContent = 'Force du mot de passe: Moyenne';
+        } else {
+            strengthBar.className = 'progress-bar bg-success';
+            strengthText.textContent = 'Force du mot de passe: Forte';
+        }
+        
+        checkFormValidity();
+    }
+    
+    // Fonction pour vérifier la correspondance des mots de passe
+    function checkPasswordMatch() {
+        const password = newPasswordInput.value;
+        const confirmPassword = confirmPasswordInput.value;
+        
+        if (!confirmPassword) {
+            matchMessage.textContent = '';
+            matchMessage.className = 'form-text';
+            return;
+        }
+        
+        if (password === confirmPassword) {
+            matchMessage.textContent = 'Les mots de passe correspondent.';
+            matchMessage.className = 'form-text text-success';
+        } else {
+            matchMessage.textContent = 'Les mots de passe ne correspondent pas.';
+            matchMessage.className = 'form-text text-danger';
+        }
+        
+        checkFormValidity();
+    }
+    
+    // Fonction pour vérifier la validité du formulaire
+    function checkFormValidity() {
+        const password = newPasswordInput.value;
+        const confirmPassword = confirmPasswordInput.value;
+        const strength = validatePasswordStrength(password);
+        const currentPassword = document.getElementById('current_password').value;
+        
+        // Activer le bouton uniquement si les critères sont remplis
+        if (strength === 100 && password === confirmPassword && password.length >= 8 && currentPassword) {
+            submitButton.disabled = false;
+        } else {
+            submitButton.disabled = true;
+        }
+    }
+    
+    // Ajouter les écouteurs d'événements
+    newPasswordInput.addEventListener('input', updateStrengthMeter);
+    newPasswordInput.addEventListener('input', checkPasswordMatch);
+    confirmPasswordInput.addEventListener('input', checkPasswordMatch);
+    document.getElementById('current_password').addEventListener('input', checkFormValidity);
+});
+</script>
             
             <hr class="my-4">
             

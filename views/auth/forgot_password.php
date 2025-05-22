@@ -1,82 +1,89 @@
-<?php
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-?>
 <!DOCTYPE html>
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>SunnyLink - Mot de passe oublié</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Réinitialisation de mot de passe - SunnyLink</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         body {
-            background-color: #f5f5f5;
+            background-color: #f5f8fa;
             font-family: 'Arial', sans-serif;
+            padding-top: 60px;
         }
-        .forgot-container {
+        .form-container {
             max-width: 500px;
-            margin: 100px auto;
-            padding: 30px;
+            margin: 0 auto;
             background: white;
+            padding: 30px;
             border-radius: 10px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
         }
         .logo {
             text-align: center;
             margin-bottom: 30px;
         }
+        .logo img {
+            height: 80px;
+        }
         .btn-primary {
             background-color: #FFD700;
             border-color: #FFD700;
-            width: 100%;
-            padding: 10px;
-            font-weight: bold;
+            color: #333;
         }
-        .back-link {
-            text-align: center;
-            margin-top: 20px;
-        }
-        .error-alert {
-            margin-bottom: 20px;
+        .btn-primary:hover {
+            background-color: #e6c200;
+            border-color: #e6c200;
+            color: #333;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="forgot-container">
+        <div class="form-container">
             <div class="logo">
-                <h2>SunnyLink</h2>
-                <p>Réinitialisation du mot de passe</p>
+                <a href="index.php">
+                    <img src="images/logo.png" alt="SunnyLink Logo">
+                </a>
+                <h2 class="mt-3">Réinitialisation de mot de passe</h2>
             </div>
             
-            <?php if (isset($errors) && !empty($errors)): ?>
-                <div class="alert alert-danger error-alert">
-                    <ul class="mb-0">
-                        <?php foreach ($errors as $error): ?>
-                            <li><?= htmlspecialchars($error) ?></li>
-                        <?php endforeach; ?>
-                    </ul>
-                </div>
+            <?php if (isset($error)): ?>
+                <div class="alert alert-danger"><?= htmlspecialchars($error) ?></div>
             <?php endif; ?>
             
-            <p class="mb-4">Veuillez entrer votre adresse email. Nous vous enverrons un mot de passe temporaire que vous pourrez utiliser pour vous connecter.</p>
+            <?php if (isset($_SESSION['error_message'])): ?>
+                <div class="alert alert-danger"><?= htmlspecialchars($_SESSION['error_message']) ?></div>
+                <?php unset($_SESSION['error_message']); ?>
+            <?php endif; ?>
             
-            <form method="POST" action="index.php?controller=auth&action=forgotPassword">
+            <p class="text-muted mb-4">
+                Saisissez l'adresse email associée à votre compte. Nous vous enverrons un lien pour réinitialiser votre mot de passe.
+            </p>
+            
+            <form method="post" action="index.php?controller=auth&action=forgotPassword">
+                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token) ?>">
+                
                 <div class="mb-3">
-                    <label for="email" class="form-label">Email</label>
-                    <input type="email" class="form-control" id="email" name="email" value="<?= htmlspecialchars($email ?? '') ?>" required>
+                    <label for="email" class="form-label">Adresse email</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fas fa-envelope"></i></span>
+                        <input type="email" class="form-control" id="email" name="email" value="<?= htmlspecialchars($email ?? '') ?>" required>
+                    </div>
                 </div>
                 
-                <button type="submit" class="btn btn-primary">Réinitialiser le mot de passe</button>
+                <div class="d-grid gap-2">
+                    <button type="submit" class="btn btn-primary">Réinitialiser mon mot de passe</button>
+                </div>
             </form>
             
-            <div class="back-link">
-                <p><a href="index.php?controller=auth&action=login">Retour à la connexion</a></p>
+            <div class="mt-4 text-center">
+                <a href="index.php?controller=auth&action=login" class="text-decoration-none">
+                    <i class="fas fa-arrow-left"></i> Retour à la connexion
+                </a>
             </div>
         </div>
     </div>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

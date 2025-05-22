@@ -7,7 +7,13 @@ $router->get('/register', [AuthController::class, 'renderRegister']);
 $router->post('/login', [AuthController::class, 'loginUser']);
 $router->post('/register', [AuthController::class, 'registerUser']);
 $router->get('/logout', [AuthController::class, 'logout']);
-
+// Routes JWT
+$router->get('/auth/token', [AuthController::class, 'getToken']);
+$router->post('/auth/refresh', [AuthController::class, 'refreshToken']);
+// Routes d'authentification API
+$router->post('/api/auth/login', [ApiAuthController::class, 'login']);
+$router->post('/api/auth/refresh', [ApiAuthController::class, 'refresh']);
+$router->post('/api/auth/logout', [ApiAuthController::class, 'logout']);
 // Dashboard et profil
 $router->get('/dashboard', [HomeController::class, 'dashboard']);
 
@@ -61,3 +67,45 @@ $router->post('/support/contact', [SupportController::class, 'contact']);
 
 $router->get('/relation/create', [RelationController::class, 'create']);
 $router->post('/relation/store', [RelationController::class, 'store']);
+// Importer le middleware
+require_once __DIR__ . '/../core/middleware/ApiProtectionMiddleware.php';
+
+// Routes API protégées pour les événements
+$router->apiGet('/api/events', function($userData) {
+    $controller = new ApiEventController();
+    $controller->getEvents($userData);
+}, ApiProtectionMiddleware::protect(['senior', 'famille']));
+
+$router->apiPost('/api/events', function($userData) {
+    $controller = new ApiEventController();
+    $controller->createEvent($userData);
+}, ApiProtectionMiddleware::protect(['famille']));
+
+// Route API pour les notifications
+$router->apiGet('/api/notifications', function($userData) {
+    $controller = new NotificationController();
+    $controller->getUserNotifications($userData->user_id);
+}, ApiProtectionMiddleware::protect());
+
+// Route API pour les photos
+$router->apiGet('/api/photos', function($userData) {
+    header('Content-Type: application/json');
+    $photos = Photo::getByUserId($userData->user_id);
+    echo json_encode(['success' => true, 'photos' => $photos]);
+}, ApiProtectionMiddleware::protect());
+
+// Route API pour le profil utilisateur
+$router->apiGet('/api/profile', function($userData) {
+    $user = User::getById($userData->user_id);
+    
+    header('Content-Type: application/json');
+    echo json_encode([
+        'success' => true,
+        'user' => [
+            'id' => $user['id'],
+            'name' => $user['name'],
+            'email' => $user['email'],
+            'role' => $user['role']
+        ]
+    ]);
+}, ApiProtectionMiddleware::protect());

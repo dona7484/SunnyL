@@ -22,5 +22,52 @@ abstract class Controller
 
         include dirname(__DIR__) . '/views/base.php'; // On fabrique le "template" de notre site
     }
+    /**
+ * Génère un token CSRF pour protéger les formulaires
+ * 
+ * @return string Token CSRF
+ */
+protected function generateCSRFToken() {
+    if (!isset($_SESSION['csrf_token'])) {
+        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+    }
+    return $_SESSION['csrf_token'];
 }
+
+/**
+ * Vérifie si un token CSRF est valide
+ * 
+ * @param string $token Token à vérifier
+ * @return bool True si le token est valide
+ */
+protected function validateCSRFToken($token) {
+    if (!isset($_SESSION['csrf_token'])) {
+        return false;
+    }
+    
+    $valid = hash_equals($_SESSION['csrf_token'], $token);
+    
+    // Optionnel: Régénérer le token après vérification pour encore plus de sécurité
+    if ($valid) {
+        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+    }
+    
+    return $valid;
+}
+
+/**
+ * Vérifie que le token CSRF est valide ou affiche une erreur
+ * 
+ * @param string $token Token à vérifier
+ * @param string $redirectUrl URL de redirection en cas d'échec
+ */
+protected function requireValidCSRFToken($token, $redirectUrl = 'index.php?controller=home&action=index') {
+    if (!$this->validateCSRFToken($token)) {
+        $_SESSION['error_message'] = "Erreur de sécurité: formulaire invalide ou expiré.";
+        header('Location: ' . $redirectUrl);
+        exit;
+    }
+}
+}
+
 ?>

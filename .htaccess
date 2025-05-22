@@ -1,13 +1,51 @@
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Empêcher l'accès direct à certains dossiers/fichiers sensibles
+    RewriteRule ^(vendor|core|config|models|Entities|node_modules)/ - [F,L]
+    RewriteRule ^(composer\.json|composer\.lock|package\.json|package-lock\.json) - [F,L]
+    RewriteRule ^(\.env|\.git) - [F,L]
+
+    # Rediriger les requêtes API vers api.php
+    # Si votre projet est dans un sous-dossier de WAMP (ex: /sunnylink/), ajustez RewriteBase et RewriteRule
+    # Exemple pour http://localhost/sunnylink/api/...
+    # RewriteBase /sunnylink/
+    # RewriteRule ^api/(.*)$ api.php?_url=/$1 [QSA,L]
+
+    # Si WAMP est configuré pour que sunnylink soit la racine du virtual host:
+    RewriteCond %{REQUEST_URI} ^/api/ [NC]
+    RewriteRule ^api/(.*)$ api.php?_url=/$1 [QSA,L]
+
+    # Rediriger toutes les autres requêtes vers public/index.php
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteCond %{REQUEST_URI} !^/public/
+    RewriteRule ^(.*)$ public/index.php [QSA,L]
+
+    # Si la requête est déjà pour un fichier dans public, la laisser passer
+    RewriteCond %{REQUEST_FILENAME} -f [OR]
+    RewriteCond %{REQUEST_FILENAME} -d
+    RewriteRule ^public/ - [L]
+
+</IfModule>
+
 <IfModule mod_mime.c>
-    # Définir les types MIME corrects
     AddType application/javascript .js
     AddType application/json .json
     AddType text/css .css
 </IfModule>
 
 <IfModule mod_headers.c>
-    # Ajouter les en-têtes CORS pour le Service Worker
-    <FilesMatch "service-worker\.js$">
+    # En-têtes pour le Service Worker (si servi depuis public/)
+    <FilesMatch "service-worker-js\.php$">
+        Header set Content-Type "application/javascript"
         Header set Service-Worker-Allowed "/"
     </FilesMatch>
+    <FilesMatch ".*-js\.php$">
+        Header set Content-Type "application/javascript"
+    </FilesMatch>
 </IfModule>
+
+# Augmenter les limites pour les uploads (si nécessaire ici aussi)
+php_value post_max_size 20M
+php_value upload_max_filesize 20M

@@ -73,7 +73,8 @@ if (session_status() === PHP_SESSION_NONE) {
                 
                 <div class="mb-3">
                     <label for="password" class="form-label">Mot de passe</label>
-                    <input type="password" class="form-control" id="password" name="password" required>
+                    <input type="password" class="form-control" id="password" name="password" autocomplete="current-password" required>
+
                     <div class="form-text">Le mot de passe doit contenir au moins 6 caractères.</div>
                 </div>
                 

@@ -1222,12 +1222,12 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 
 <script src="js/voice-controls.js"></script>
-<!-- Bouton de test -->
+<!-- <!-- Bouton de test
 <div class="diaporama-debug" style="position: fixed; bottom: 20px; right: 20px; z-index: 100;">
     <button id="start-slideshow-test" class="btn btn-info">
         <i class="fas fa-play"></i> Tester Diaporama
-    </button>
-</div>
+    </button> -->
+</div> -->
 <!-- Ajoutez ceci en bas de la page dashboard.php, juste avant la fermeture </body> -->
 <!-- Scripts intégrés pour contourner les problèmes de MIME -->
 <script>

@@ -123,31 +123,116 @@ class ParametresController extends Controller
     header('Location: index.php?controller=parametres&action=index');
     exit;
 }
-    // Changement de mot de passe
-    public function updatePassword()
-    {
-        if (!isset($_SESSION['user_id'])) {
-            header('Location: index.php?controller=auth&action=login');
-            exit;
-        }
-        $userId = $_SESSION['user_id'];
-        $newPassword = $_POST['new_password'] ?? '';
-        if (strlen($newPassword) < 6) {
-            $_SESSION['error_message'] = "Le mot de passe doit contenir au moins 6 caractères.";
-            header('Location: index.php?controller=parametres&action=index');
-            exit;
-        }
-        $user = User::getById($userId);
-        $result = User::updateProfile($userId, $user['name'], $user['email'], $newPassword, $user['avatar'] ?? null);
 
-        if ($result) {
-            $_SESSION['success_message'] = "Mot de passe modifié.";
-        } else {
-            $_SESSION['error_message'] = "Erreur lors du changement de mot de passe.";
-        }
+  /**
+ * Gère la mise à jour du mot de passe de l'utilisateur
+ */
+public function updatePassword() {
+    if (!isset($_SESSION['user_id'])) {
+        header('Location: index.php?controller=auth&action=login');
+        exit;
+    }
+    
+    // Vérifier le token CSRF
+    $this->requireValidCSRFToken($_POST['csrf_token'] ?? '', 'index.php?controller=parametres&action=index');
+    
+    $userId = $_SESSION['user_id'];
+    $currentPassword = $_POST['current_password'] ?? '';
+    $newPassword = $_POST['new_password'] ?? '';
+    $confirmPassword = $_POST['confirm_password'] ?? '';
+    
+    // Vérifier que tous les champs sont remplis
+    if (empty($currentPassword) || empty($newPassword) || empty($confirmPassword)) {
+        $_SESSION['error_message'] = "Tous les champs sont obligatoires.";
         header('Location: index.php?controller=parametres&action=index');
         exit;
     }
+    
+    // Récupérer les données de l'utilisateur
+    $user = User::getById($userId);
+    if (!$user) {
+        $_SESSION['error_message'] = "Utilisateur introuvable.";
+        header('Location: index.php?controller=parametres&action=index');
+        exit;
+    }
+    
+    // Vérifier que le mot de passe actuel est correct
+    if (!password_verify($currentPassword, $user['password'])) {
+        // Enregistrer la tentative échouée
+        require_once __DIR__ . '/../models/LoginAttempt.php';
+        LoginAttempt::recordAttempt($userId);
+        
+        $_SESSION['error_message'] = "Le mot de passe actuel est incorrect.";
+        header('Location: index.php?controller=parametres&action=index');
+        exit;
+    }
+    
+    // Vérifier que les nouveaux mots de passe correspondent
+    if ($newPassword !== $confirmPassword) {
+        $_SESSION['error_message'] = "Les nouveaux mots de passe ne correspondent pas.";
+        header('Location: index.php?controller=parametres&action=index');
+        exit;
+    }
+    
+    // Vérifier que le nouveau mot de passe est différent de l'ancien
+    if (password_verify($newPassword, $user['password'])) {
+        $_SESSION['error_message'] = "Le nouveau mot de passe doit être différent de l'ancien.";
+        header('Location: index.php?controller=parametres&action=index');
+        exit;
+    }
+    
+    // Vérifier la complexité du mot de passe
+    if (!$this->validatePasswordStrength($newPassword)) {
+        $_SESSION['error_message'] = "Le mot de passe doit contenir au moins 8 caractères, une majuscule, une minuscule et un chiffre.";
+        header('Location: index.php?controller=parametres&action=index');
+        exit;
+    }
+    
+    // Mettre à jour le mot de passe
+    $result = User::updateProfile($userId, $user['name'], $user['email'], $newPassword, $user['avatar'] ?? null);
+    
+    if ($result) {
+        // Régénérer l'ID de session pour plus de sécurité
+        session_regenerate_id(true);
+        
+        $_SESSION['success_message'] = "Votre mot de passe a été modifié avec succès.";
+    } else {
+        $_SESSION['error_message'] = "Une erreur s'est produite lors de la modification du mot de passe.";
+    }
+    
+    header('Location: index.php?controller=parametres&action=index');
+    exit;
+}
+
+/**
+ * Valide la complexité du mot de passe
+ * 
+ * @param string $password Mot de passe à valider
+ * @return bool True si le mot de passe est suffisamment fort
+ */
+private function validatePasswordStrength($password) {
+    // Longueur minimale de 8 caractères
+    if (strlen($password) < 8) {
+        return false;
+    }
+    
+    // Au moins une lettre majuscule
+    if (!preg_match('/[A-Z]/', $password)) {
+        return false;
+    }
+    
+    // Au moins une lettre minuscule
+    if (!preg_match('/[a-z]/', $password)) {
+        return false;
+    }
+    
+    // Au moins un chiffre
+    if (!preg_match('/[0-9]/', $password)) {
+        return false;
+    }
+    
+    return true;
+}
 
     // Ajout d'un parent (redirige vers la page d'ajout)
     public function addParent()
@@ -176,6 +261,7 @@ class ParametresController extends Controller
         header('Location: index.php?controller=parametres&action=index');
         exit;
     }
+    
     public function senior()
 {
     if (!isset($_SESSION['user_id'])) {

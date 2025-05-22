@@ -7,34 +7,26 @@ if (!isset($_GET['controller'])) {
 }
 
 class Router {
+      private $routes = [];
+    private $middlewares = [];
+    public function __construct() {
+        $this->routes = [
+            'apiGet' => [],
+            'apiPost' => [],
+            'apiPut' => [],
+            'apiDelete' => []
+        ];
+        $this->middlewares = [
+            'apiGet' => [],
+            'apiPost' => [],
+            'apiPut' => [],
+            'apiDelete' => []
+        ];
+    }
+    
     public function routes()
     {
-        // 📞 Appels vidéo
-        if (isset($_GET['controller']) && $_GET['controller'] === 'call') {
-            $action = $_GET['action'] ?? 'start';
-            $controllerName = 'CallController';
-            $controllerPath = __DIR__ . '/../Controllers/' . $controllerName . '.php';
-        
-            if (file_exists($controllerPath)) {
-                require_once $controllerPath;
-            }
-        
-            if (class_exists($controllerName)) {
-                $controller = new $controllerName();
-                if (method_exists($controller, $action)) {
-                    $controller->$action();
-                    exit;
-                }
-            }
-        
-            $_SESSION['error_message'] = "Action d'appel non trouvée";
-            header('Location: index.php?controller=home&action=error');
-            exit;
-        }
-        if (preg_match('/\.php$/', $_SERVER['REQUEST_URI'])) {
-    // Laisser le serveur traiter directement les fichiers PHP
-    return;
-}
+
         // 🔔 Notifications
         if (isset($_GET['controller']) && $_GET['controller'] === 'notification') {
             $action = $_GET['action'] ?? 'get';
@@ -109,4 +101,117 @@ class Router {
             echo "Erreur 404 : Contrôleur '$controllerName' introuvable.";
         }
     }
+    private function handleApiMethod($methodName, $path, $defaultHandler) {
+    // Vérifier si la méthode existe
+    if (!method_exists($this, $methodName)) {
+        $defaultHandler();
+        return;
+    }
+    
+    // Variable pour indiquer si une route a été trouvée
+    $routeFound = false;
+    
+    // Parcourir les routes enregistrées pour cette méthode
+    if (isset($this->routes[$methodName])) {
+        foreach ($this->routes[$methodName] as $route => $handler) {
+            if ($this->matchRoute($route, $path)) {
+                $routeFound = true;
+                
+                // Exécuter le middleware si présent
+                if (isset($this->middlewares[$methodName][$route])) {
+                    $middleware = $this->middlewares[$methodName][$route];
+                    $middlewareResult = $middleware();
+                    $handler($middlewareResult);
+                } else {
+                    // Exécuter le gestionnaire sans middleware
+                    $handler();
+                }
+                break;
+            }
+        }
+    }
+    
+    // Si aucune route n'a été trouvée, appeler le gestionnaire par défaut
+    if (!$routeFound) {
+        $defaultHandler();
+    }
 }
+// Méthode pour enregistrer une route
+private function registerRoute($method, $route, $handler, $middleware = null) {
+    $this->routes[$method][$route] = $handler;
+    if ($middleware) {
+        $this->middlewares[$method][$route] = $middleware;
+    }
+}
+    public function handleApiRequest() {
+    $requestUri = $_SERVER['REQUEST_URI'];
+    $method = $_SERVER['REQUEST_METHOD'];
+    
+    // Extraire le chemin de l'URI
+    $path = parse_url($requestUri, PHP_URL_PATH);
+    
+    // Log pour le débogage
+    error_log("API Request: $method $path");
+    
+    // Définir un gestionnaire par défaut pour les routes inconnues
+    $defaultHandler = function() {
+        http_response_code(404);
+        echo json_encode(['error' => 'Endpoint not found']);
+    };
+    
+    // Appeler la méthode correspondante selon la méthode HTTP
+    switch ($method) {
+        case 'GET':
+            $this->handleApiMethod('apiGet', $path, $defaultHandler);
+            break;
+        case 'POST':
+            $this->handleApiMethod('apiPost', $path, $defaultHandler);
+            break;
+        case 'PUT':
+            $this->handleApiMethod('apiPut', $path, $defaultHandler);
+            break;
+        case 'DELETE':
+            $this->handleApiMethod('apiDelete', $path, $defaultHandler);
+            break;
+        default:
+            $defaultHandler();
+            break;
+    }
+}
+    public function apiGet($route, $handler, $middleware = null) {
+    $this->registerRoute('apiGet', $route, $handler, $middleware);
+}
+
+public function apiPost($route, $handler, $middleware = null) {
+    $this->registerRoute('apiPost', $route, $handler, $middleware);
+}
+
+public function apiPut($route, $handler, $middleware = null) {
+    $this->registerRoute('apiPut', $route, $handler, $middleware);
+}
+
+public function apiDelete($route, $handler, $middleware = null) {
+    $this->registerRoute('apiDelete', $route, $handler, $middleware);
+}
+
+private function matchRoute($routePattern, $requestPath) {
+    // Convertir le pattern de route en expression régulière
+    $pattern = preg_replace('/{([a-zA-Z0-9_]+)}/', '(?P<$1>[^/]+)', $routePattern);
+    $pattern = '#^' . $pattern . '$#';
+    
+    // Tester si le chemin de la requête correspond au pattern
+    if (preg_match($pattern, $requestPath, $matches)) {
+        // Stocker les paramètres capturés
+        foreach ($matches as $key => $value) {
+            if (is_string($key)) {
+                $_GET[$key] = $value;
+            }
+        }
+        return true;
+    }
+    
+    return false;
+}
+
+} // <-- Add this closing brace to end the Router class
+
