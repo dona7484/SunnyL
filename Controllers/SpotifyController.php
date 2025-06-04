@@ -2,8 +2,15 @@
 require_once __DIR__ . '/../config/database.php';
 
 class SpotifyController extends Controller {
-    private $clientId = '54f6bb2b6a994174b8c96c66605ff9f8';
-    private $clientSecret = '5e6a10de42d64bcaa7436887e1841e7e';
+    private $clientId;
+    private $clientSecret;
+    private $redirectUri;
+    
+    public function __construct() {
+        $this->clientId = $_ENV['SPOTIFY_CLIENT_ID'];
+        $this->clientSecret = $_ENV['SPOTIFY_CLIENT_SECRET'];
+        $this->redirectUri = $_ENV['SPOTIFY_REDIRECT_URI'];
+    }
     private $redirectUri = 'https://vps-6ce6c779.vps.ovh.net/SunnyLink/public/index.php?controller=spotify&action=callback';
     
     public function player() {
